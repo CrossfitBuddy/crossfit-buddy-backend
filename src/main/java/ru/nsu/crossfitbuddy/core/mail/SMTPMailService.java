@@ -15,8 +15,8 @@ public class SMTPMailService implements MailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${EMAIL_ADDRESS}")
-    private final String fromAddres;
+    @Value("${server.fromAddress}")
+    private String fromAddres;
 
     @Override
     public void sendHtml(String to, String subject, String html) throws MessagingException {

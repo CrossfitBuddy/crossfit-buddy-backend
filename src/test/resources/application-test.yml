@@ -1,0 +1,13 @@
+spring:
+  mail:
+    host: localhost
+    port: 3025
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: false 
+          starttls:
+            enable: false
+server:
+  fromAddress: test@example.com
