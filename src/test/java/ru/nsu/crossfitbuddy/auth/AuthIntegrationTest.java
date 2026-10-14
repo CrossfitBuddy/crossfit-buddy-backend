@@ -452,6 +452,7 @@ class AuthIntegrationTest extends PostgresContainerSupport {
         UUID trainerId = UUID.randomUUID();
         UUID adminId = UUID.randomUUID();
         UUID workoutId = UUID.randomUUID();
+        UUID stageId = UUID.randomUUID();
         String hash = passwordEncoder.encode(PASSWORD);
         database
             .update("insert into " + schema + ".app_user(id, email, password_hash, display_name, first_name, last_name,"
@@ -465,12 +466,20 @@ class AuthIntegrationTest extends PostgresContainerSupport {
         database
             .update("insert into " + schema + ".user_roles(user_id, role) values (?, 'ATHLETE'), (?, 'TRAINER'), (?,"
                 + " 'TRAINER'), (?, 'ADMIN')", dualRoleAccountId, dualRoleAccountId, trainerId, adminId);
-        database.update("insert into " + schema + ".workout(id, title, type, created_by, assigned_to) values (?,"
-                + " 'Assigned', 'ASSIGNED', ?, ?)", workoutId, trainerId, dualRoleAccountId);
+        database.update("insert into " + schema + ".workout(id, title, type, created_by) values (?,"
+                + " 'Assigned', 'ASSIGNED', ?)", workoutId, trainerId);
+        database.update("insert into " + schema + ".workout_participant(workout_id, trainer_id, athlete_id)"
+                + " values (?, ?, ?)", workoutId, trainerId, dualRoleAccountId);
         database.update("insert into " + schema + ".trainer_subscription(athlete_id, trainer_id, status) values (?, ?,"
                 + " 'ACTIVE')", dualRoleAccountId, trainerId);
-        database.update("insert into " + schema + ".workout_result(workout_id, athlete_id, started_at) values (?, ?,"
-                + " now())", workoutId, dualRoleAccountId);
+        database.update("insert into " + schema + ".stage_format(id, code, name, position)"
+                + " values (1, 'TEST', 'Test stage format', 0)");
+        database.update("insert into " + schema + ".complex_format(id, code, name)"
+                + " values (1, 'TEST', 'Test complex format')");
+        database.update("insert into " + schema + ".stage(id, workout_id, format_id, complex_format_id)"
+                + " values (?, ?, 1, 1)", stageId, workoutId);
+        database.update("insert into " + schema + ".stage_result(stage_id, athlete_id) values (?, ?)",
+            stageId, dualRoleAccountId);
         database
             .update("insert into " + schema + ".exercise(name, created_by) values ('Exercise', ?)", dualRoleAccountId);
         database.update("insert into " + schema + ".password_reset_code(user_id, code_hash, expires_at) values (?,"
@@ -504,8 +513,15 @@ class AuthIntegrationTest extends PostgresContainerSupport {
             .queryForObject("select weight_kg from " + schema + ".athlete_profile where user_id = ?",
                 java.math.BigDecimal.class, dualRoleAccountId)).isNull();
         assertThat(database
-            .queryForObject("select assigned_to from " + schema + ".workout where id = ?", UUID.class, workoutId))
+            .queryForObject("select athlete_id from " + schema + ".workout_participant where workout_id = ?",
+                UUID.class, workoutId))
             .isEqualTo(dualRoleAccountId);
+        assertThat(database
+            .queryForObject("select trainer_id from " + schema + ".workout_participant where workout_id = ?",
+                UUID.class, workoutId)).isEqualTo(trainerId);
+        assertThat(database
+            .queryForObject("select athlete_id from " + schema + ".stage_result where stage_id = ?",
+                UUID.class, stageId)).isEqualTo(dualRoleAccountId);
         assertThat(database
             .queryForObject("select code_hash from " + schema + ".password_reset_code where user_id = ?", String.class,
                 dualRoleAccountId)).isEqualTo("existing-code-hash");
@@ -518,10 +534,11 @@ class AuthIntegrationTest extends PostgresContainerSupport {
                 schema + ".user_roles.user_id",
                 schema + ".exercise.created_by",
                 schema + ".workout.created_by",
-                schema + ".workout.assigned_to",
+                schema + ".workout_participant.athlete_id",
+                schema + ".workout_participant.trainer_id",
                 schema + ".trainer_subscription.athlete_id",
                 schema + ".trainer_subscription.trainer_id",
-                schema + ".workout_result.athlete_id",
+                schema + ".stage_result.athlete_id",
                 schema + ".password_reset_code.user_id",
                 schema + ".user_profile.user_id",
                 schema + ".athlete_profile.user_id",
