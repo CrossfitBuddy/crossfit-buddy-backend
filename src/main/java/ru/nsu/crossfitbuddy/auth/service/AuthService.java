@@ -1,0 +1,160 @@
+package ru.nsu.crossfitbuddy.auth.service;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import ru.nsu.crossfitbuddy.auth.api.AccountResponse;
+import ru.nsu.crossfitbuddy.auth.api.AuthResponse;
+import ru.nsu.crossfitbuddy.auth.api.LoginRequest;
+import ru.nsu.crossfitbuddy.auth.api.RegisterRequest;
+import ru.nsu.crossfitbuddy.auth.security.AccountDetails;
+import ru.nsu.crossfitbuddy.auth.security.AccountDetailsService;
+import ru.nsu.crossfitbuddy.auth.security.JwtService;
+import ru.nsu.crossfitbuddy.common.api.ApiException;
+import ru.nsu.crossfitbuddy.core.user.domain.AthleteProfile;
+import ru.nsu.crossfitbuddy.core.user.domain.UserAccount;
+import ru.nsu.crossfitbuddy.core.user.domain.UserProfile;
+import ru.nsu.crossfitbuddy.core.user.domain.UserRole;
+import ru.nsu.crossfitbuddy.core.user.persistence.AthleteProfileRepository;
+import ru.nsu.crossfitbuddy.core.user.persistence.UserAccountRepository;
+import ru.nsu.crossfitbuddy.core.user.persistence.UserProfileRepository;
+import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final UserAccountRepository userAccountRepository;
+    private final UserProfileRepository userProfileRepository;
+    private final AthleteProfileRepository athleteProfileRepository;
+    private final JwtService jwtService;
+
+    @Transactional
+    public AuthResponse login(LoginRequest request) {
+        validatePasswordByteLength(request.password());
+        var authentication = authenticationManager.authenticate(UsernamePasswordAuthenticationToken
+                .unauthenticated(AccountDetailsService.normalizeEmail(request.email()), request.password()));
+        var account = ((AccountDetails) authentication.getPrincipal()).account();
+        UserRole role = resolveInitialActiveRole(account);
+        account.selectActiveRole(role);
+        return createAuthResponse(account, role);
+    }
+
+    @Transactional
+    public AuthResponse register(RegisterRequest request) {
+        validatePasswordByteLength(request.password());
+        if (!request.password().equals(request.passwordConfirmation())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "Passwords do not match.");
+        }
+        String email = AccountDetailsService.normalizeEmail(request.email());
+        if (userAccountRepository.existsByEmail(email)) {
+            throw emailConflict();
+        }
+        String firstName = request.firstName().strip();
+        String lastName = request.lastName().strip();
+        var account = UserAccount.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode(request.password()))
+            .roles(new HashSet<>(Set.of(UserRole.ATHLETE)))
+            .activeRole(UserRole.ATHLETE)
+            .build();
+        try {
+            userAccountRepository.saveAndFlush(account);
+        } catch (DataIntegrityViolationException exception) {
+            if ("ux_app_user_email_normalized".equals(constraintName(exception)) || "app_user_email_key"
+                .equals(constraintName(exception))) {
+                throw emailConflict();
+            }
+            throw exception;
+        }
+        userProfileRepository.save(UserProfile.create(account, firstName, lastName));
+        athleteProfileRepository.save(AthleteProfile.create(account));
+        return createAuthResponse(account, UserRole.ATHLETE);
+    }
+
+    @Transactional(readOnly = true)
+    public AccountResponse getCurrentAccount(CurrentUser currentUser) {
+        var account = findCurrentAccountOrThrow(currentUser);
+        return AccountResponse.from(account, displayName(account), UserRole.valueOf(currentUser.activeRole()));
+    }
+
+    @Transactional
+    public AuthResponse switchActiveRole(CurrentUser currentUser, UserRole role) {
+        var account = findCurrentAccountOrThrow(currentUser);
+        if (!account.getRoles().contains(role) || (account.getRoles().contains(UserRole.ADMIN)
+            && role != UserRole.ADMIN)) {
+            throw new AccessDeniedException("Requested role is not assigned to this account");
+        }
+        account.selectActiveRole(role);
+        return createAuthResponse(account, role);
+    }
+
+    private UserAccount findCurrentAccountOrThrow(CurrentUser currentUser) {
+        return userAccountRepository.findById(currentUser.id())
+            .orElseThrow(() -> new AccessDeniedException("Account unavailable"));
+    }
+
+    static UserRole resolveInitialActiveRole(UserAccount user) {
+        if (user.getRoles().contains(UserRole.ADMIN)) {
+            return UserRole.ADMIN;
+        }
+        if (user.getActiveRole() != null && user.getRoles().contains(user.getActiveRole())) {
+            return user.getActiveRole();
+        }
+        if (user.getRoles().contains(UserRole.ATHLETE)) {
+            return UserRole.ATHLETE;
+        }
+        if (user.getRoles().contains(UserRole.TRAINER)) {
+            return UserRole.TRAINER;
+        }
+        throw new ApiException(HttpStatus.FORBIDDEN, "ROLE_NOT_ASSIGNED",
+            "No role is assigned to this account. Contact an administrator.");
+    }
+
+    private AuthResponse createAuthResponse(UserAccount user, UserRole role) {
+        var token = jwtService.issue(user, role);
+        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), AccountResponse
+            .from(user, displayName(user), role));
+    }
+
+    private String displayName(UserAccount user) {
+        return userProfileRepository.findById(user.getId())
+            .map(UserProfile::getDisplayName)
+            .filter(name -> !name.isBlank())
+            .orElse(user.getEmail());
+    }
+
+    private static void validatePasswordByteLength(String password) {
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_TOO_LONG",
+                "Password must not exceed 72 UTF-8 bytes.");
+        }
+    }
+
+    private static ApiException emailConflict() {
+        return new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS",
+            "An account with this email already exists.");
+    }
+
+    private static String constraintName(Throwable exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException violation) {
+                return violation.getConstraintName();
+            }
+        }
+        return null;
+    }
+}

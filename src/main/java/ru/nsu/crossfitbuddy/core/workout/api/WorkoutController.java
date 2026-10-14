@@ -1,5 +1,7 @@
 package ru.nsu.crossfitbuddy.core.workout.api;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/workouts")
+@SecurityRequirement(name = "bearerAuth")
 public class WorkoutController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
