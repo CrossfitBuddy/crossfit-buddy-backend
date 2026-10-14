@@ -13,10 +13,22 @@ spring:
     enabled: true
   jackson:
     default-property-inclusion: non_null
+  mail:
+    host: localhost
+    port: 1025 
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: false 
+          starttls:
+            enable: false
+
 
 server:
   port: ${PORT:8080}
   shutdown: graceful
+  fromAddress: test@example.com
 
 management:
   endpoints:
