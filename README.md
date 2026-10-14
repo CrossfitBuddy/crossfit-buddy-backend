@@ -7,5 +7,5 @@
 1. Установить JDK 21 и Maven 3.9+.
 2. Запустить БД: `docker compose up -d`.
 3. Запустить приложение: `mvn spring-boot:run`.
-4. Проверить health: `http://localhost:8080/actuator/health`.
-5. Открыть Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
+4. Проверить health: http://localhost:8080/actuator/health.
+5. Открыть Swagger UI: http://localhost:8080/swagger-ui/index.html.
