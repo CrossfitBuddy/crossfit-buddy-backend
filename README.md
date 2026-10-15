@@ -9,3 +9,5 @@
 3. Запустить приложение: `mvn spring-boot:run`.
 4. Проверить health: `http://localhost:8080/actuator/health`.
 5. Открыть Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
+
+Открыть веб интерфейс эмулятора email сервиса: `http://localhost:8025/`
