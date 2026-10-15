@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.workout.api;
+package ru.nsu.crossfitbuddy.core.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/workouts")
+@RequestMapping(Paths.WORKOUTS)
 public class WorkoutController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)

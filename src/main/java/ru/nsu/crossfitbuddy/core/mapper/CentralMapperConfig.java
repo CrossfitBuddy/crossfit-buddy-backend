@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.shared.mapping;
+package ru.nsu.crossfitbuddy.core.mapper;
 
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.MapperConfig;

@@ -1,14 +1,14 @@
-package ru.nsu.crossfitbuddy.core.user.mapping;
+package ru.nsu.crossfitbuddy.core.mapper;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.nsu.crossfitbuddy.core.user.domain.UserProfile;
+import ru.nsu.crossfitbuddy.core.entity.UserProfile;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class UserProfileMapperTest {
+class AppUserProfileMapperTest {
     private final UserProfileMapper mapper = Mappers.getMapper(UserProfileMapper.class);
 
     @Test
