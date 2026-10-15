@@ -19,7 +19,7 @@ services:
     container_name: mailpit
     ports:
       - "1025:1025" # SMTP писем
-
+      - "8025:8025" # Веб-интерфейс email сервиса
 
 volumes:
   postgres-data:
