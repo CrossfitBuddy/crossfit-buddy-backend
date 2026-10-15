@@ -14,9 +14,7 @@ class ModuleArchitectureTest {
             .consideringOnlyDependenciesInLayers()
             .layer("Auth").definedBy("..auth..")
             .layer("Core").definedBy("..core..")
-            .layer("Shared").definedBy("..shared..")
-            .layer("Infrastructure").definedBy("..config..", "..common..")
+            .layer("Infrastructure").definedBy("..config..")
             .whereLayer("Auth").mayNotBeAccessedByAnyLayer()
-            .whereLayer("Core").mayOnlyBeAccessedByLayers("Auth", "Infrastructure")
-            .whereLayer("Shared").mayOnlyBeAccessedByLayers("Auth", "Core", "Infrastructure");
+            .whereLayer("Core").mayOnlyBeAccessedByLayers("Auth", "Infrastructure");
 }
