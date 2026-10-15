@@ -1,6 +1,8 @@
 package ru.nsu.crossfitbuddy.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +14,8 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,10 +35,19 @@ import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
+@EnableWebSecurity
+@RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+    @ConditionalOnProperty(
+        prefix = "app",
+        name = "security-enabled",
+        havingValue = "true",
+        matchIfMissing = true
+    )
+    SecurityFilterChain securityEnabledFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
         SecurityErrorHandler errors) throws Exception {
         return http.csrf(csrf -> csrf.disable())
             .cors(cors -> {})
@@ -60,6 +73,24 @@ public class SecurityConfig {
                 .hasRole("ATHLETE")
                 .anyRequest()
                 .authenticated())
+            .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+        prefix = "app",
+        name = "security-enabled",
+        havingValue = "false"
+    )
+    SecurityFilterChain securityDisabledFilterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll()
+            )
             .build();
     }
 
