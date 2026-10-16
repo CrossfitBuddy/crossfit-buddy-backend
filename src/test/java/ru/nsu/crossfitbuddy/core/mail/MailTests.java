@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.icegreen.greenmail.junit5.GreenMailExtension;
@@ -18,7 +20,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 
-@SpringBootTest
 @ActiveProfiles("test")
 class MailTests {
     @RegisterExtension
@@ -27,20 +28,34 @@ class MailTests {
     @Autowired
     private MailService emailService;
 
+    @BeforeEach
+    void setUp() {
+
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+
+        mailSender.setHost(greenMail.getSmtp().getServerSetup().getBindAddress());
+        mailSender.setPort(greenMail.getSmtp().getServerSetup().getPort());
+        mailSender.setProtocol(greenMail.getSmtp().getServerSetup().getProtocol());
+
+        this.emailService = new SMTPMailService(mailSender, "testmail@mail.com");
+    }
+
+    @DisplayName("Проверка количество отправленных писем")
     @Test
     void Should_TransferCurrentCountEmail_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Привет!");
+        emailService.sendHtml("user@example.com", "subject", "Hello!");
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
         assertEquals(1, receivedMessages.length);
     }
 
+    @DisplayName("Проверка коректности загаловка в письме")
     @Test
     void Should_TransferCorrectSubject_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Привет!");
+        emailService.sendHtml("user@example.com", "subject", "Hello!");
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
@@ -49,20 +64,22 @@ class MailTests {
         assertEquals("user@example.com", receivedMessages[0].getAllRecipients()[0].toString());
     }
 
+    @DisplayName("Проверка коректности загаловка в письме")
     @Test
     void Should_TransferCorrectOutputAddress_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Привет!");
+        emailService.sendHtml("user@example.com", "subject", "Hello!");
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
         assertEquals("user@example.com", receivedMessages[0].getAllRecipients()[0].toString());
     }
 
+    @DisplayName("Проверка коректности основного текста в письме")
     @Test
     void Should_TransferCorrectText_WhenSendHtml() throws MessagingException, IOException {
 
-        emailService.sendHtml("user@example.com", "subject", "Привет!");
+        emailService.sendHtml("user@example.com", "subject", "Hello!");
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
@@ -78,7 +95,7 @@ class MailTests {
         MimeMultipart mp1 = (MimeMultipart) mp.getBodyPart(0).getContent();
 
         assertEquals(1, mp1.getCount());
-        assertEquals("Привет!", mp1.getBodyPart(0).getContent());
+        assertEquals("Hello!", mp1.getBodyPart(0).getContent());
     }
 
 }
