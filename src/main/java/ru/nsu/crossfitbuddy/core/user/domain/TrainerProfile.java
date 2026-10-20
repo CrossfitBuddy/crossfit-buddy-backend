@@ -9,7 +9,8 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 import lombok.AccessLevel;
@@ -37,7 +38,8 @@ public class TrainerProfile {
     @Column(columnDefinition = "text")
     private String specializations;
 
-    @PositiveOrZero
+    @Min(0)
+    @Max(80)
     @Column(name = "experience_years")
     private Integer experienceYears;
 

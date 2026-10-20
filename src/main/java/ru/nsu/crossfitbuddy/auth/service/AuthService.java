@@ -1,6 +1,7 @@
 package ru.nsu.crossfitbuddy.auth.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
@@ -50,7 +52,9 @@ public class AuthService {
         var account = ((AccountDetails) authentication.getPrincipal()).account();
         UserRole role = resolveInitialActiveRole(account);
         account.selectActiveRole(role);
-        return createAuthResponse(account, role);
+        var response = createAuthResponse(account, role);
+        log.info("User authenticated, login response prepared: userId={}, activeRole={}", account.getId(), role);
+        return response;
     }
 
     @Transactional
@@ -74,7 +78,7 @@ public class AuthService {
         try {
             userAccountRepository.saveAndFlush(account);
         } catch (DataIntegrityViolationException exception) {
-            if ("ux_app_user_email_normalized".equals(constraintName(exception)) || "app_user_email_key"
+            if ("ux_user_account_email_normalized".equals(constraintName(exception)) || "user_account_email_key"
                 .equals(constraintName(exception))) {
                 throw emailConflict();
             }
@@ -82,7 +86,9 @@ public class AuthService {
         }
         userProfileRepository.save(UserProfile.create(account, firstName, lastName));
         athleteProfileRepository.save(AthleteProfile.create(account));
-        return createAuthResponse(account, UserRole.ATHLETE);
+        var response = createAuthResponse(account, UserRole.ATHLETE);
+        log.info("Registration response prepared, transaction commit pending: userId={}", account.getId());
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -96,10 +102,14 @@ public class AuthService {
         var account = findCurrentAccountOrThrow(currentUser);
         if (!account.getRoles().contains(role) || (account.getRoles().contains(UserRole.ADMIN)
             && role != UserRole.ADMIN)) {
+            log.warn("Active role change denied: userId={}, requestedRole={}", account.getId(), role);
             throw new AccessDeniedException("Requested role is not assigned to this account");
         }
         account.selectActiveRole(role);
-        return createAuthResponse(account, role);
+        var response = createAuthResponse(account, role);
+        log.info("Active role change response prepared, transaction commit pending: userId={}, activeRole={}",
+            account.getId(), role);
+        return response;
     }
 
     private UserAccount findCurrentAccountOrThrow(CurrentUser currentUser) {

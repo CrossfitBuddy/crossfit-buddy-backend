@@ -7,6 +7,8 @@ import jakarta.validation.ConstraintViolationException;
 
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -254,6 +256,43 @@ class ProfilePersistenceTest extends PostgresContainerSupport {
         assertThatThrownBy(() -> database
             .update("insert into athlete_profile(user_id, weight_kg) values (?," + " 0)", account.getId()))
             .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"49,80", "251,80", "180,19.99", "180,500.01"})
+    void rejectsMeasurementsOutsideAgreedRangesInDatabase(int height, BigDecimal weight) {
+        var account = createTestAccount(UserRole.ATHLETE);
+        assertThatThrownBy(() -> database.update(
+            "insert into athlete_profile(user_id, height_cm, weight_kg) values (?, ?, ?)",
+            account.getId(), height, weight))
+            .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-1", "81"})
+    void rejectsExperienceOutsideAgreedRangeInDatabase(int experience) {
+        var account = createTestAccount(UserRole.TRAINER);
+        assertThatThrownBy(() -> database.update(
+            "insert into trainer_profile(user_id, experience_years) values (?, ?)", account.getId(), experience))
+            .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"50,20,0", "250,500,80"})
+    void acceptsAgreedRangeBoundaries(int height, BigDecimal weight, int experience) {
+        var account = createTestAccount(UserRole.ATHLETE, UserRole.TRAINER);
+        var athlete = AthleteProfile.create(account);
+        athlete.updateMeasurements(height, weight);
+        athleteProfileRepository.saveAndFlush(athlete);
+        var trainer = TrainerProfile.create(account);
+        trainer.updateDetails(null, experience, null);
+        trainerProfileRepository.saveAndFlush(trainer);
+        entities.clear();
+        assertThat(athleteProfileRepository.findById(account.getId()).orElseThrow().getHeightCm()).isEqualTo(height);
+        assertThat(athleteProfileRepository.findById(account.getId()).orElseThrow().getWeightKg())
+            .isEqualByComparingTo(weight);
+        assertThat(trainerProfileRepository.findById(account.getId()).orElseThrow().getExperienceYears())
+            .isEqualTo(experience);
     }
 
     private UserAccount createTestAccount(UserRole... roles) {

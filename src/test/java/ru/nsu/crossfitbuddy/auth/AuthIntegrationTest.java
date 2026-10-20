@@ -374,7 +374,7 @@ class AuthIntegrationTest extends PostgresContainerSupport {
     void appliesMigrationsAndEnforcesRoleAndRecoveryConstraints() {
         assertThat(database.queryForObject("select count(*) from roles", Integer.class)).isEqualTo(3);
         assertThat(database.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(3);
+            .isEqualTo(18);
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
@@ -387,41 +387,25 @@ class AuthIntegrationTest extends PostgresContainerSupport {
     }
 
     @Test
-    void migratesExistingV1AccountWithoutLosingCredentialsRolesOrReferences() {
-        String schema = "upgrade_" + UUID.randomUUID().toString().replace("-", "");
-        var configuration = Flyway.configure()
+    void createsFinalSchemaFromScratch() {
+        String schema = "fresh_" + UUID.randomUUID().toString().replace("-", "");
+        var result = Flyway.configure()
             .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
             .schemas(schema)
             .defaultSchema(schema)
-            .locations("classpath:db/migration");
-        configuration.target("1").load().migrate();
-        UUID userId = UUID.randomUUID();
-        UUID workoutId = UUID.randomUUID();
-        String originalHash = passwordEncoder.encode(PASSWORD);
-        database.update("insert into " + schema + ".app_user(id, email, password_hash, display_name) values (?,"
-                + " 'OLD@EXAMPLE.COM', ?, 'Legacy')", userId, originalHash);
-        database.update("insert into " + schema + ".user_roles(user_id, role) values (?, 'ATHLETE')", userId);
-        database.update("insert into " + schema + ".workout(id, title, type, created_by) values (?, 'Legacy workout',"
-                + " 'OWN', ?)", workoutId, userId);
-        configuration.target("latest").load().migrate();
-        assertThat(database
-            .queryForObject("select email from " + schema + ".user_account where id = ?", String.class, userId))
-            .isEqualTo("old@example.com");
-        assertThat(database
-            .queryForObject("select password_hash from " + schema + ".user_account where id = ?", String.class, userId))
-            .isEqualTo(originalHash);
-        assertThat(database
-            .queryForObject("select role::text from " + schema + ".user_roles where user_id = ?", String.class, userId))
-            .isEqualTo("ATHLETE");
-        assertThat(database
-            .queryForObject("select created_by from " + schema + ".workout where id = ?", UUID.class, workoutId))
-            .isEqualTo(userId);
-        assertThat(database
-            .queryForObject("select display_name from " + schema + ".user_profile where user_id = ?", String.class,
-                userId)).isEqualTo("Legacy");
-        assertThat(database
-            .queryForObject("select count(*) from " + schema + ".athlete_profile where user_id = ?", Integer.class,
-                userId)).isEqualTo(1);
+            .locations("classpath:db/migration")
+            .load().migrate();
+        assertThat(result.migrationsExecuted).isEqualTo(18);
+        assertThat(database.queryForObject("select count(*) from " + schema + ".roles", Integer.class))
+            .isEqualTo(3);
+        assertThat(database.queryForList(
+            "select column_name from information_schema.columns where table_schema = ? and table_name = 'user_account'",
+            String.class, schema)).contains("email", "password_hash", "deleted", "token_version", "version")
+            .doesNotContain("first_name", "last_name", "display_name");
+        assertThat(database.queryForList(
+            "select table_name from information_schema.tables where table_schema = ?", String.class, schema))
+            .contains("user_account", "user_profile", "athlete_profile", "trainer_profile")
+            .doesNotContain("app_user", "profile_history");
     }
 
     @Test
@@ -440,96 +424,14 @@ class AuthIntegrationTest extends PostgresContainerSupport {
     }
 
     @Test
-    void migratesV2NamesAccountStateAndBothRoleProfilesKeepingAllIncomingForeignKeys() {
-        String schema = "profiles_" + UUID.randomUUID().toString().replace("-", "");
-        var configuration = Flyway.configure()
-            .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
-            .schemas(schema)
-            .defaultSchema(schema)
-            .locations("classpath:db/migration");
-        configuration.target("2").load().migrate();
-        UUID dualRoleAccountId = UUID.randomUUID();
-        UUID trainerId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID workoutId = UUID.randomUUID();
-        UUID stageId = UUID.randomUUID();
-        String hash = passwordEncoder.encode(PASSWORD);
-        database
-            .update("insert into " + schema + ".app_user(id, email, password_hash, display_name, first_name, last_name,"
-                + " active_role, enabled, deleted, token_version, version) values (?,"
-                + " 'dual@example.com', ?, 'Иван Иванов', 'Иван', 'Иванов', 'TRAINER'," + " false, true, 12, 7)",
-                dualRoleAccountId, hash);
-        database.update("insert into " + schema + ".app_user(id, email, password_hash, display_name) values (?,"
-                + " 'trainer@example.com', ?, 'Legacy trainer')", trainerId, hash);
-        database.update("insert into " + schema + ".app_user(id, email, password_hash, display_name) values (?,"
-                + " 'admin@example.com', ?, 'Admin')", adminId, hash);
-        database
-            .update("insert into " + schema + ".user_roles(user_id, role) values (?, 'ATHLETE'), (?, 'TRAINER'), (?,"
-                + " 'TRAINER'), (?, 'ADMIN')", dualRoleAccountId, dualRoleAccountId, trainerId, adminId);
-        database.update("insert into " + schema + ".workout(id, title, type, created_by) values (?,"
-                + " 'Assigned', 'ASSIGNED', ?)", workoutId, trainerId);
-        database.update("insert into " + schema + ".workout_participant(workout_id, trainer_id, athlete_id)"
-                + " values (?, ?, ?)", workoutId, trainerId, dualRoleAccountId);
-        database.update("insert into " + schema + ".trainer_subscription(athlete_id, trainer_id, status) values (?, ?,"
-                + " 'ACTIVE')", dualRoleAccountId, trainerId);
-        database.update("insert into " + schema + ".stage_format(id, code, name, position)"
-                + " values (1, 'TEST', 'Test stage format', 0)");
-        database.update("insert into " + schema + ".complex_format(id, code, name)"
-                + " values (1, 'TEST', 'Test complex format')");
-        database.update("insert into " + schema + ".stage(id, workout_id, format_id, complex_format_id)"
-                + " values (?, ?, 1, 1)", stageId, workoutId);
-        database.update("insert into " + schema + ".stage_result(stage_id, athlete_id) values (?, ?)",
-            stageId, dualRoleAccountId);
-        database
-            .update("insert into " + schema + ".exercise(name, created_by) values ('Exercise', ?)", dualRoleAccountId);
-        database.update("insert into " + schema + ".password_reset_code(user_id, code_hash, expires_at) values (?,"
-                + " 'existing-code-hash', now() + interval '15 minutes')", dualRoleAccountId);
-        configuration.target("latest").load().migrate();
-
-        var migrated = database
-            .queryForMap("select * from " + schema + ".user_account where id = ?", dualRoleAccountId);
-        assertThat(migrated.get("id")).isEqualTo(dualRoleAccountId);
-        assertThat(migrated.get("password_hash")).isEqualTo(hash);
-        assertThat(migrated.get("active_role").toString()).isEqualTo("TRAINER");
-        assertThat(migrated.get("enabled")).isEqualTo(false);
-        assertThat(migrated.get("deleted")).isEqualTo(true);
-        assertThat(migrated.get("token_version")).isEqualTo(12L);
-        assertThat(migrated.get("version")).isEqualTo(7L);
-        assertThat(migrated).doesNotContainKeys("first_name", "last_name", "display_name");
-        var profile = database
-            .queryForMap("select * from " + schema + ".user_profile where user_id = ?", dualRoleAccountId);
-        assertThat(profile.get("first_name")).isEqualTo("Иван");
-        assertThat(profile.get("last_name")).isEqualTo("Иванов");
-        assertThat(profile.get("display_name")).isEqualTo("Иван Иванов");
-        assertThat(profile.get("birth_date")).isNull();
-        assertThat(profile.get("avatar_key")).isNull();
-        assertThat(database.queryForObject("select count(*) from " + schema + ".user_profile", Integer.class))
-            .isEqualTo(3);
-        assertThat(database.queryForObject("select count(*) from " + schema + ".athlete_profile", Integer.class))
-            .isEqualTo(1);
-        assertThat(database.queryForObject("select count(*) from " + schema + ".trainer_profile", Integer.class))
-            .isEqualTo(2);
+    void createsAllIncomingAccountForeignKeys() {
+        String schema = "public";
         assertThat(database
-            .queryForObject("select weight_kg from " + schema + ".athlete_profile where user_id = ?",
-                java.math.BigDecimal.class, dualRoleAccountId)).isNull();
-        assertThat(database
-            .queryForObject("select athlete_id from " + schema + ".workout_participant where workout_id = ?",
-                UUID.class, workoutId))
-            .isEqualTo(dualRoleAccountId);
-        assertThat(database
-            .queryForObject("select trainer_id from " + schema + ".workout_participant where workout_id = ?",
-                UUID.class, workoutId)).isEqualTo(trainerId);
-        assertThat(database
-            .queryForObject("select athlete_id from " + schema + ".stage_result where stage_id = ?",
-                UUID.class, stageId)).isEqualTo(dualRoleAccountId);
-        assertThat(database
-            .queryForObject("select code_hash from " + schema + ".password_reset_code where user_id = ?", String.class,
-                dualRoleAccountId)).isEqualTo("existing-code-hash");
-        assertThat(database
-            .queryForList("select c.conrelid::regclass::text || '.' || a.attname from"
-                + " pg_constraint c join pg_attribute a on a.attrelid ="
-                + " c.conrelid and a.attnum = any(c.conkey) where c.confrelid ="
-                + " cast(? as regclass) and c.contype = 'f'", String.class, schema + ".user_account"))
+            .queryForList("select n.nspname || '.' || c.relname || '.' || a.attname from"
+                + " pg_constraint fk join pg_class c on c.oid = fk.conrelid"
+                + " join pg_namespace n on n.oid = c.relnamespace join pg_attribute a on a.attrelid ="
+                + " c.oid and a.attnum = any(fk.conkey) where fk.confrelid ="
+                + " cast(? as regclass) and fk.contype = 'f'", String.class, schema + ".user_account"))
             .containsExactlyInAnyOrder(
                 schema + ".user_roles.user_id",
                 schema + ".exercise.created_by",
@@ -543,9 +445,6 @@ class AuthIntegrationTest extends PostgresContainerSupport {
                 schema + ".user_profile.user_id",
                 schema + ".athlete_profile.user_id",
                 schema + ".trainer_profile.user_id");
-        assertThat(database
-            .queryForObject("select count(*) from information_schema.tables where table_schema"
-                + " = ? and table_name = 'profile_history'", Integer.class, schema)).isZero();
     }
 
     private ResultActions protectedRequest(String token) throws Exception {

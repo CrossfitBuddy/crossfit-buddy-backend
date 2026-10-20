@@ -12,7 +12,10 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,11 +39,13 @@ public class AthleteProfile {
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private UserAccount user;
 
-    @Positive
+    @Min(50)
+    @Max(250)
     @Column(name = "height_cm")
     private Integer heightCm;
 
-    @Positive
+    @DecimalMin("20")
+    @DecimalMax("500")
     @Digits(integer = 4, fraction = 2)
     @Column(name = "weight_kg", precision = 6, scale = 2)
     private BigDecimal weightKg;

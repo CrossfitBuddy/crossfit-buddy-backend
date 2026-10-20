@@ -38,6 +38,6 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     issuer: ${JWT_ISSUER:crossfitbuddy}
-    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

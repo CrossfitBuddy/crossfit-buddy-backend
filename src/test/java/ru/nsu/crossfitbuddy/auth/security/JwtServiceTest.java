@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ru.nsu.crossfitbuddy.core.user.domain.UserAccount;
@@ -28,6 +29,7 @@ class JwtServiceTest {
     private final UserAccount user = UserAccount.builder().id(UUID.randomUUID()).tokenVersion(2).build();
 
     @Test
+    @DisplayName("Создание и проверка JWT")
     void roundTripIncludesIdentityRoleAndRevocationVersion() {
         var issued = service.issue(user, UserRole.TRAINER);
         assertThat(service.verify(issued.value()))
@@ -37,6 +39,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Просроченный JWT отклоняется")
     void rejectsExpiredTokens() {
         String token = service.issue(user, UserRole.ATHLETE).value();
         var later = new JwtService(properties, Clock.fixed(now.plusSeconds(901), ZoneOffset.UTC));
@@ -44,6 +47,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("JWT с чужим ключом отклоняется")
     void rejectsTokensSignedWithAnotherKey() {
         var other = new JwtService(new JwtProperties("YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODk=", "crossfitbuddy",
             Duration.ofMinutes(15)), clock);
@@ -52,6 +56,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Неверный издатель или тип JWT")
     void rejectsWrongIssuerAndWrongTokenType() {
         String wrongIssuer = builder().issuer("other").compact();
         String wrongType = builder().claim("token_type", "refresh").compact();
@@ -60,6 +65,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Ошибки в сроке, ID или роли JWT")
     void rejectsMissingExpirationMissingIdentityAndInvalidRole() {
         assertThatThrownBy(() -> service.verify(builder().expiration(null).compact())).isInstanceOf(JwtException.class);
         assertThatThrownBy(() -> service.verify(builder().subject("not-a-uuid").compact()))
@@ -69,6 +75,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Ошибки в дате, подписи или формате JWT")
     void rejectsFutureIssuedAtUnsignedAndMalformedTokens() {
         assertThatThrownBy(() -> service.verify(builder().issuedAt(Date.from(now.plusSeconds(1))).compact()))
             .isInstanceOf(JwtException.class);
@@ -78,6 +85,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Неверные настройки ключа или срока JWT")
     void failsStartupForWeakKeysAndUnboundedTokenLifetime() {
         assertThatThrownBy(() -> new JwtService(new JwtProperties("c2hvcnQ=", "issuer", Duration.ofMinutes(15)), clock))
             .isInstanceOf(IllegalArgumentException.class);
@@ -88,6 +96,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Разрешён только HS256")
     void rejectsAnotherSignatureAlgorithmEvenWithSameKey() {
         String secret = java.util.Base64.getEncoder().encodeToString(new byte[64]);
         var strict = new JwtService(new JwtProperties(secret, "crossfitbuddy", Duration.ofMinutes(15)), clock);
@@ -96,6 +105,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Неверный срок действия JWT")
     void rejectsUnboundedAndNonPositiveLifetime() {
         assertThatThrownBy(() -> service.verify(builder().expiration(Date.from(now.plusSeconds(3601))).compact()))
             .isInstanceOf(JwtException.class);
@@ -104,6 +114,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Отсутствующие поля или неверная версия JWT")
     void rejectsMissingIssuedAtMissingVersionAndNegativeVersion() {
         assertThatThrownBy(() -> service.verify(builder().issuedAt(null).compact())).isInstanceOf(JwtException.class);
         assertThatThrownBy(() -> service.verify(builder().claim("token_version", null).compact()))
@@ -114,6 +125,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Пустой или слишком длинный JWT")
     void rejectsNullBlankAndOversizedTokenBeforeParsing() {
         assertThatThrownBy(() -> service.verify(null)).isInstanceOf(JwtException.class);
         assertThatThrownBy(() -> service.verify(" ")).isInstanceOf(JwtException.class);
@@ -121,6 +133,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("toString скрывает секрет и JWT")
     void diagnosticRepresentationsDoNotExposeSigningSecretOrToken() {
         var token = service.issue(user, UserRole.ATHLETE);
         assertThat(properties.toString()).doesNotContain(SECRET);
