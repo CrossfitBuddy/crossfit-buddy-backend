@@ -19,6 +19,16 @@ import java.util.Comparator;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> uploadTooLarge(HttpServletRequest request) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE", "Avatar must not exceed 5 MB.", request);
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    ResponseEntity<ApiError> missingPart(HttpServletRequest request) {
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "The file part is required.", request);
+    }
+
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ApiError> application(ApiException exception, HttpServletRequest request) {
         return error(exception.status(), exception.code(), exception.getMessage(), request);
