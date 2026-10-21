@@ -7,7 +7,38 @@
 1. Установить JDK 21 и Maven 3.9+.
 2. Запустить БД: `docker compose up -d`.
 3. Запустить приложение: `mvn spring-boot:run`.
-4. Проверить health: `http://localhost:8080/actuator/health`.
-5. Открыть Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
+4. Проверить health: http://localhost:8080/actuator/health.
+5. Открыть Swagger UI: http://localhost:8080/swagger-ui/index.html.
 
-Открыть веб интерфейс эмулятора email сервиса: `http://localhost:8025/`
+По умолчанию JWT действует 1 час. Срок можно переопределить переменной окружения `JWT_ACCESS_TOKEN_TTL`.
+
+## Получение JWT
+
+1. В Swagger UI выполнить `POST /api/v1/auth/register`, чтобы создать пользователя:
+
+   ```json
+   {
+     "firstName": "Иван",
+     "lastName": "Иванов",
+     "email": "ivan@example.com",
+     "password": "ExamplePassword123!",
+     "passwordConfirmation": "ExamplePassword123!"
+   }
+   ```
+
+   Если пользователь уже зарегистрирован, выполнить `POST /api/v1/auth/login`:
+
+   ```json
+   {
+     "email": "ivan@example.com",
+     "password": "ExamplePassword123!"
+   }
+   ```
+
+2. Скопировать значение поля `accessToken` из ответа регистрации или входа.
+3. Нажать **Authorize**, вставить токен и подтвердить авторизацию.
+4. Выполнить `GET /api/v1/auth/me`.
+
+После истечения срока действия токена выполнить вход повторно.
+
+Открыть веб-интерфейс эмулятора email-сервиса: `http://localhost:8025/`

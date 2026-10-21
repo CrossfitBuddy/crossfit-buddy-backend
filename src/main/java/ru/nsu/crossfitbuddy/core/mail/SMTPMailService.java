@@ -1,6 +1,5 @@
 package ru.nsu.crossfitbuddy.core.mail;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -8,18 +7,20 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor(onConstructor = @__(@Autowired)) // @Value поле собирается через конструктор
 public class SMTPMailService implements MailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${server.fromAddress}")
     private final String fromAddres;
+
+    public SMTPMailService(JavaMailSender mailSender, @Value("${server.fromAddress}") String fromAddres) {
+        this.mailSender = mailSender;
+        this.fromAddres = fromAddres;
+    }
 
     @Override
     public void sendHtml(String to, String subject, String html) throws MessagingException {
