@@ -18,10 +18,22 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
+  mail:
+    host: localhost
+    port: 1025
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
 
 server:
   port: ${PORT:8080}
   shutdown: graceful
+  fromAddress: test@example.com
 
 management:
   endpoints:

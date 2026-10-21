@@ -22,7 +22,8 @@ import java.util.Map;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+    properties = {"app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "management.health.mail.enabled=false"})
 class CrossfitBuddyApplicationTests extends PostgresContainerSupport {
     @Autowired
     private ApplicationContext context;

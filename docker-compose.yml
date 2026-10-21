@@ -14,6 +14,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025" # SMTP писем
+      - "8025:8025" # Веб-интерфейс email сервиса
 
 volumes:
   postgres-data:

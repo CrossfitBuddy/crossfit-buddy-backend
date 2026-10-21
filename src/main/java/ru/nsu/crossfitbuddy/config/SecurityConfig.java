@@ -49,7 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**",
                     "/swagger-ui.html")
                 .permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register")
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register",
+                    "/api/v1/auth/password/**", "/send-email")
                 .permitAll()
                 .requestMatchers("/api/v1/admin/**")
                 .hasRole("ADMIN")
