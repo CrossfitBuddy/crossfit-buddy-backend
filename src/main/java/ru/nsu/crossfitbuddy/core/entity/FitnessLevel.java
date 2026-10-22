@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user.domain;
+package ru.nsu.crossfitbuddy.core.entity;
 
 public enum FitnessLevel {
     BEGINNER, INTERMEDIATE, ADVANCED

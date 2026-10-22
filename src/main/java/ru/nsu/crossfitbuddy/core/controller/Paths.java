@@ -9,4 +9,10 @@ public class Paths {
     public static final String USER_BY_ID = "/{id}";
 
     public static final String WORKOUTS = "/api/v1/workouts";
+
+    public static final String AUTH = "/api/v1/auth";
+    public static final String AUTH_LOGIN = "/login";
+    public static final String AUTH_REGISTER = "/register";
+    public static final String AUTH_ME = "/me";
+    public static final String AUTH_ACTIVE_ROLE = "/active-role";
 }

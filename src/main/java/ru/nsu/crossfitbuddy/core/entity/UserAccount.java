@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user.domain;
+package ru.nsu.crossfitbuddy.core.entity;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;

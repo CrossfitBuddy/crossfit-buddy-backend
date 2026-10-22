@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,10 +26,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import ru.nsu.crossfitbuddy.auth.security.AccountDetailsService;
-import ru.nsu.crossfitbuddy.auth.security.JwtAuthenticationFilter;
-import ru.nsu.crossfitbuddy.auth.security.JwtProperties;
-import ru.nsu.crossfitbuddy.common.api.SecurityErrorHandler;
+import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
+import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
+import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
+import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
 
 import java.time.Clock;
 import java.util.List;
@@ -49,13 +50,13 @@ public class SecurityConfig {
     )
     SecurityFilterChain securityEnabledFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
         SecurityErrorHandler errors) throws Exception {
-        return http.csrf(csrf -> csrf.disable())
+        return http.csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .requestCache(cache -> cache.disable())
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .logout(logout -> logout.disable())
+            .requestCache(RequestCacheConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .logout(AbstractHttpConfigurer::disable)
             .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth

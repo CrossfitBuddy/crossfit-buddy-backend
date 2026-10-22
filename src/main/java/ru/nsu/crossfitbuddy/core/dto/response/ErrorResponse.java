@@ -1,9 +1,12 @@
 package ru.nsu.crossfitbuddy.core.dto.response;
 
-import org.springframework.http.HttpStatus;
+import java.time.Instant;
 
 public record ErrorResponse(
-    HttpStatus httpStatus,
-    String message
-) {
-}
+    Instant timestamp,
+    int status,
+    String code,
+    String message,
+    String path
+) {}
+
