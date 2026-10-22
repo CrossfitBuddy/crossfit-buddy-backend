@@ -16,6 +16,7 @@ spring:
     parser:
       strict-duplicate-detection: true
     deserialization:
+      fail-on-numbers-for-enums: true
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
   mail:
