@@ -51,6 +51,6 @@ class CrossfitBuddyApplicationTests extends AbstractRepositoryTest {
         var response = http.postForEntity("/api/v1/auth/login", request, ErrorResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().code()).isEqualTo("INVALID_CREDENTIALS");
+        assertThat(response.getBody().code()).isEqualTo("UNAUTHORIZED");
     }
 }

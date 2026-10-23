@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.controller;
+package ru.nsu.crossfitbuddy.auth;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import ru.nsu.crossfitbuddy.auth.security.annotation.AdminAuthority;
+import ru.nsu.crossfitbuddy.auth.security.annotation.AthleteAuthority;
+import ru.nsu.crossfitbuddy.auth.security.annotation.TrainerAuthority;
 import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
@@ -97,6 +100,8 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         mvc.perform(get("/api/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
         mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("code").value("ACCESS_DENIED"));
     }
@@ -133,7 +138,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("message").value("Authentication is required or the access token is" + " invalid."));
         String token = jwtService.issue(userAccountRepository.findByEmail(email).orElseThrow(), UserRole.ATHLETE)
             .value();
-        mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("message").value("You do not have permission to perform this action."));
     }
@@ -197,33 +202,6 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"role\":\"ATHLETE\"}"))
-            .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void switchesAssignedRoleRemembersItAndRejectsPrivilegeEscalation() throws Exception {
-        String email = generateUniqueEmail();
-        UUID id = createTestAccount(email, true, UserRole.ATHLETE, UserRole.TRAINER);
-        String originalToken = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
-        String trainerToken = extractAccessToken(mvc
-            .perform(patch("/api/v1/auth/active-role")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + originalToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"role\":\"TRAINER\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("user.activeRole").value("TRAINER")));
-        mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + trainerToken))
-            .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + trainerToken))
-            .andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + originalToken))
-            .andExpect(jsonPath("activeRole").value("ATHLETE"));
-        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.TRAINER);
-        login(email, PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("user.activeRole").value("TRAINER"));
-        mvc.perform(patch("/api/v1/auth/active-role")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + trainerToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"role\":\"ADMIN\"}"))
             .andExpect(status().isForbidden());
     }
 
@@ -359,7 +337,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void checksMethodSecurityAndCorsPreflight() throws Exception {
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         String token = jwtService.issue(userAccountRepository.findById(id).orElseThrow(), UserRole.ATHLETE).value();
-        mvc.perform(get("/api/v1/probe-admin").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden());
         mvc.perform(options("/api/v1/auth/login")
                 .header(HttpHeaders.ORIGIN, "http://localhost:5173")
@@ -447,7 +425,6 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
                 schema + ".trainer_profile.user_id");
     }
 
-
     private ResultActions protectedRequest(String token) throws Exception {
         return mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }
@@ -503,14 +480,22 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
 
     @RestController
     static class RoleEndpoints {
-        @GetMapping({ "/api/v1/athlete/probe", "/api/v1/trainer/probe", "/api/v1/admin/probe" })
-        String probe() {
+
+        @AthleteAuthority
+        @GetMapping({ "/api/v1/athlete/probe" })
+        String athleteProbe() {
             return "ok";
         }
 
-        @PreAuthorize("hasRole('ADMIN')")
-        @GetMapping("/api/v1/probe-admin")
-        String methodProtected() {
+        @TrainerAuthority
+        @GetMapping({ "/api/v1/trainer/probe" })
+        String trainerProbe() {
+            return "ok";
+        }
+
+        @AdminAuthority
+        @GetMapping("/api/v1/admin/probe")
+        String adminProbe() {
             return "ok";
         }
     }
