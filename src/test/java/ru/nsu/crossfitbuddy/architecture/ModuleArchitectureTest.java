@@ -12,9 +12,7 @@ class ModuleArchitectureTest {
     @ArchTest
     static final ArchRule moduleDependencies = layeredArchitecture()
             .consideringOnlyDependenciesInLayers()
-            .layer("Auth").definedBy("..auth..")
             .layer("Core").definedBy("..core..")
             .layer("Infrastructure").definedBy("..config..")
-            .whereLayer("Auth").mayNotBeAccessedByAnyLayer()
-            .whereLayer("Core").mayOnlyBeAccessedByLayers("Auth", "Infrastructure");
+            .whereLayer("Core").mayOnlyBeAccessedByLayers("Infrastructure");
 }

@@ -374,7 +374,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void appliesMigrationsAndEnforcesRoleAndRecoveryConstraints() {
         assertThat(database.queryForObject("select count(*) from roles", Integer.class)).isEqualTo(3);
         assertThat(database.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(18);
+            .isEqualTo(19);
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
@@ -395,7 +395,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .defaultSchema(schema)
             .locations("classpath:db/migration")
             .load().migrate();
-        assertThat(result.migrationsExecuted).isEqualTo(18);
+        assertThat(result.migrationsExecuted).isEqualTo(19);
         assertThat(database.queryForObject("select count(*) from " + schema + ".roles", Integer.class))
             .isEqualTo(3);
         assertThat(database.queryForList(
@@ -446,6 +446,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
                 schema + ".athlete_profile.user_id",
                 schema + ".trainer_profile.user_id");
     }
+
 
     private ResultActions protectedRequest(String token) throws Exception {
         return mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
