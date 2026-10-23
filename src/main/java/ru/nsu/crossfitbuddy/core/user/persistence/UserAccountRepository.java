@@ -16,5 +16,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     @EntityGraph(attributePaths = "roles")
     Optional<UserAccount> findById(UUID id);
 
+    @EntityGraph(attributePaths = "roles")
+    Optional<UserAccount> findByIdAndDeletedFalseAndEnabledTrue(UUID id);
+
     boolean existsByEmail(String email);
 }
