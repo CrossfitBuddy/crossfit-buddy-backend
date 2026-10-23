@@ -8,7 +8,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,6 +46,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 @SpringBootTest(properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 @AutoConfigureMockMvc
@@ -179,12 +186,18 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @DisplayName("Без ролей вход запрещён; ADMIN имеет приоритет и не может смениться на ATHLETE")
     void deniesAccountsWithoutRolesAndPrioritizesAdmin() throws Exception {
         String accountWithoutRolesEmail = generateUniqueEmail();
         createTestAccount(accountWithoutRolesEmail, true);
         login(accountWithoutRolesEmail, PASSWORD)
             .andExpect(status().isForbidden())
-            .andExpect(jsonPath("code").value("ROLE_NOT_ASSIGNED"));
+            .andExpect(jsonPath("code").value("ROLE_NOT_ASSIGNED"))
+            .andExpect(jsonPath("status").value(403))
+            .andExpect(jsonPath("timestamp").isNotEmpty())
+            .andExpect(jsonPath("message").isNotEmpty())
+            .andExpect(jsonPath("path").value("/api/v1/auth/login"))
+            .andExpect(jsonPath("accessToken").doesNotExist());
         String adminEmail = generateUniqueEmail();
         UUID id = createTestAccount(adminEmail, true, UserRole.ADMIN, UserRole.ATHLETE);
         database.update("update user_account set active_role = 'ATHLETE' where id = ?", id);
@@ -201,6 +214,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @DisplayName("Переключение в обе стороны сохраняет роль и изолирует права каждого JWT")
     void switchesAssignedRoleRemembersItAndRejectsPrivilegeEscalation() throws Exception {
         String email = generateUniqueEmail();
         UUID id = createTestAccount(email, true, UserRole.ATHLETE, UserRole.TRAINER);
@@ -216,14 +230,46 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(status().isOk());
         mvc.perform(get("/api/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + trainerToken))
             .andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + originalToken))
+        assertThat(trainerToken).isNotEqualTo(originalToken);
+        assertThat(jwtService.verify(trainerToken).activeRole()).isEqualTo(UserRole.TRAINER);
+        mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + originalToken))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + originalToken))
+            .andExpect(status().isOk());
+        protectedRequest(originalToken)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("roles", org.hamcrest.Matchers.containsInAnyOrder("ATHLETE", "TRAINER")))
             .andExpect(jsonPath("activeRole").value("ATHLETE"));
+        protectedRequest(trainerToken)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("roles", org.hamcrest.Matchers.containsInAnyOrder("ATHLETE", "TRAINER")))
+            .andExpect(jsonPath("activeRole").value("TRAINER"));
         assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.TRAINER);
         login(email, PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("user.activeRole").value("TRAINER"));
         mvc.perform(patch("/api/v1/auth/active-role")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + trainerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"role\":\"ADMIN\"}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("code").value("ACCESS_DENIED"))
+            .andExpect(jsonPath("status").value(403))
+            .andExpect(jsonPath("timestamp").isNotEmpty())
+            .andExpect(jsonPath("message").isNotEmpty())
+            .andExpect(jsonPath("path").value("/api/v1/auth/active-role"))
+            .andExpect(jsonPath("accessToken").doesNotExist());
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.TRAINER);
+        String athleteToken = extractAccessToken(switchRole(trainerToken, "{\"role\":\"ATHLETE\"}")
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+            .andExpect(jsonPath("tokenType").value("Bearer"))
+            .andExpect(jsonPath("expiresAt").isNotEmpty())
+            .andExpect(jsonPath("user.activeRole").value("ATHLETE")));
+        assertThat(jwtService.verify(athleteToken).activeRole()).isEqualTo(UserRole.ATHLETE);
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.ATHLETE);
+        login(email, PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("user.activeRole").value("ATHLETE"));
+        protectedRequest(trainerToken).andExpect(status().isOk())
+            .andExpect(jsonPath("activeRole").value("TRAINER"));
+        mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + athleteToken))
             .andExpect(status().isForbidden());
     }
 
@@ -447,6 +493,147 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
                 schema + ".trainer_profile.user_id");
     }
 
+    @ParameterizedTest(name = "roles={0}, saved={1}, expected={2}")
+    @CsvSource({
+        "ATHLETE, , ATHLETE",
+        "TRAINER, , TRAINER",
+        "ADMIN, , ADMIN",
+        "ATHLETE TRAINER, , ATHLETE",
+        "ATHLETE TRAINER, ATHLETE, ATHLETE",
+        "ATHLETE TRAINER, TRAINER, TRAINER",
+        "ATHLETE TRAINER, ADMIN, ATHLETE",
+        "ATHLETE, TRAINER, ATHLETE",
+        "TRAINER, ATHLETE, TRAINER",
+        "ATHLETE TRAINER ADMIN, ATHLETE, ADMIN",
+        "ATHLETE TRAINER ADMIN, TRAINER, ADMIN"
+    })
+    @DisplayName("Выбор и сохранение роли при входе")
+    void selectsAndPersistsActiveRole(String assigned, String saved, UserRole expected) throws Exception {
+        String email = generateUniqueEmail();
+        UserRole[] roles = Arrays.stream(assigned.split(" ")).map(UserRole::valueOf).toArray(UserRole[]::new);
+        UUID id = createTestAccount(email, true, roles);
+        database.update("update user_account set active_role = cast(? as user_role) where id = ?", saved, id);
+        String token = extractAccessToken(login(email, PASSWORD)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("user.activeRole").value(expected.name())));
+        assertThat(jwtService.verify(token).activeRole()).isEqualTo(expected);
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(expected);
+        protectedRequest(token)
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+            .andExpect(jsonPath("roles", org.hamcrest.Matchers.containsInAnyOrder(assigned.split(" "))))
+            .andExpect(jsonPath("activeRole").value(expected.name()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidRoleRequests")
+    @DisplayName("Ошибки в запросе смены роли")
+    void rejectsInvalidRolePayload(String name, String body, String code) throws Exception {
+        String email = generateUniqueEmail();
+        UUID id = createTestAccount(email, true, UserRole.ATHLETE, UserRole.TRAINER);
+        String token = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
+        switchRole(token, body)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("timestamp").isNotEmpty())
+            .andExpect(jsonPath("status").value(400))
+            .andExpect(jsonPath("code").value(code))
+            .andExpect(jsonPath("message").isNotEmpty())
+            .andExpect(jsonPath("path").value("/api/v1/auth/active-role"))
+            .andExpect(jsonPath("accessToken").doesNotExist());
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.ATHLETE);
+    }
+
+    @Test
+    @DisplayName("Запрет смены ADMIN на TRAINER")
+    void cannotLeaveAdminForTrainer() throws Exception {
+        String email = generateUniqueEmail();
+        UUID id = createTestAccount(email, true, UserRole.ADMIN, UserRole.TRAINER);
+        String token = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
+        switchRole(token, "{\"role\":\"TRAINER\"}")
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("code").value("ACCESS_DENIED"));
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(UserRole.ADMIN);
+    }
+
+    @Test
+    @DisplayName("Смена роли требует входа")
+    void cannotSwitchRoleWithoutAuthentication() throws Exception {
+        mvc.perform(patch("/api/v1/auth/active-role").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"role\":\"TRAINER\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("code").value("UNAUTHORIZED"));
+        switchRole("invalid", "{\"role\":\"TRAINER\"}")
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("code").value("UNAUTHORIZED"));
+    }
+
+    static Stream<Arguments> invalidRoleRequests() {
+        return Stream.of(
+            Arguments.of("Роль отсутствует", "{}", "VALIDATION_ERROR"),
+            Arguments.of("Роль равна null", "{\"role\":null}", "VALIDATION_ERROR"),
+            Arguments.of("Неизвестная роль", "{\"role\":\"UNKNOWN\"}", "INVALID_REQUEST"),
+            Arguments.of("Число вместо ATHLETE", "{\"role\":0}", "INVALID_REQUEST"),
+            Arguments.of("Число вместо TRAINER", "{\"role\":1}", "INVALID_REQUEST"),
+            Arguments.of("Число в строке", "{\"role\":\"1\"}", "INVALID_REQUEST"),
+            Arguments.of("Пустая строка", "{\"role\":\"\"}", "INVALID_REQUEST"),
+            Arguments.of("Логическое значение", "{\"role\":true}", "INVALID_REQUEST"),
+            Arguments.of("Массив", "{\"role\":[]}", "INVALID_REQUEST"),
+            Arguments.of("Объект", "{\"role\":{}}", "INVALID_REQUEST"),
+            Arguments.of("Повторное поле", "{\"role\":\"ATHLETE\",\"role\":\"TRAINER\"}",
+                "INVALID_REQUEST"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    @DisplayName("Повторный выбор текущей роли")
+    void reselectsCurrentRole(UserRole role) throws Exception {
+        String email = generateUniqueEmail();
+        UUID id = createTestAccount(email, true, role);
+        String original = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
+        String replacement = extractAccessToken(switchRole(original, json.writeValueAsString(Map.of("role", role)))
+            .andExpect(status().isOk()).andExpect(jsonPath("user.activeRole").value(role.name())));
+        assertThat(replacement).isNotEqualTo(original);
+        assertThat(jwtService.verify(replacement).activeRole()).isEqualTo(role);
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(role);
+        protectedRequest(replacement).andExpect(status().isOk())
+            .andExpect(jsonPath("roles", org.hamcrest.Matchers.contains(role.name())))
+            .andExpect(jsonPath("activeRole").value(role.name()));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ATHLETE, TRAINER", "TRAINER, ATHLETE"})
+    @DisplayName("Запрет выбора неназначенной роли")
+    void rejectsUnassignedUserRole(UserRole assigned, UserRole requested) throws Exception {
+        String email = generateUniqueEmail();
+        UUID id = createTestAccount(email, true, assigned);
+        String token = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
+        switchRole(token, json.writeValueAsString(Map.of("role", requested)))
+            .andExpect(status().isForbidden()).andExpect(jsonPath("code").value("ACCESS_DENIED"));
+        assertThat(userAccountRepository.findById(id).orElseThrow().getActiveRole()).isEqualTo(assigned);
+    }
+
+    @Test
+    @DisplayName("Проверка JWT после изменения ролей")
+    void rechecksRolesAfterAssignmentChanges() throws Exception {
+        String email = generateUniqueEmail();
+        UUID id = createTestAccount(email, true, UserRole.ATHLETE, UserRole.TRAINER);
+        String athleteToken = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
+        String trainerToken = extractAccessToken(switchRole(athleteToken, "{\"role\":\"TRAINER\"}")
+            .andExpect(status().isOk()));
+        database.update("delete from user_roles where user_id=? and role='TRAINER'", id);
+        protectedRequest(trainerToken).andExpect(status().isUnauthorized());
+        switchRole(athleteToken, "{\"role\":\"TRAINER\"}")
+            .andExpect(status().isForbidden());
+        database.update("insert into user_roles(user_id,role) values (?,'ADMIN')", id);
+        protectedRequest(athleteToken).andExpect(status().isUnauthorized());
+        login(email, PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("user.activeRole").value("ADMIN"));
+    }
+
+    private ResultActions switchRole(String token, String body) throws Exception {
+        return mvc.perform(patch("/api/v1/auth/active-role")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
 
     private ResultActions protectedRequest(String token) throws Exception {
         return mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
