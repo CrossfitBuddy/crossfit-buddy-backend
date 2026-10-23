@@ -7,16 +7,16 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import ru.nsu.crossfitbuddy.common.api.ApiException;
-import ru.nsu.crossfitbuddy.core.user.api.ProfileResponse;
-import ru.nsu.crossfitbuddy.core.user.api.UpdateProfileRequest;
-import ru.nsu.crossfitbuddy.core.user.domain.UserProfile;
-import ru.nsu.crossfitbuddy.core.user.domain.UserRole;
-import ru.nsu.crossfitbuddy.core.user.persistence.AthleteProfileRepository;
-import ru.nsu.crossfitbuddy.core.user.persistence.TrainerProfileRepository;
-import ru.nsu.crossfitbuddy.core.user.persistence.UserAvatarRepository;
-import ru.nsu.crossfitbuddy.core.user.persistence.UserProfileRepository;
-import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+import ru.nsu.crossfitbuddy.core.dto.request.UpdateProfileRequest;
+import ru.nsu.crossfitbuddy.core.dto.response.ProfileResponse;
+import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
+import ru.nsu.crossfitbuddy.core.entity.UserProfile;
+import ru.nsu.crossfitbuddy.core.entity.UserRole;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
+import ru.nsu.crossfitbuddy.core.repository.AthleteProfileRepository;
+import ru.nsu.crossfitbuddy.core.repository.TrainerProfileRepository;
+import ru.nsu.crossfitbuddy.core.repository.UserAvatarRepository;
+import ru.nsu.crossfitbuddy.core.repository.UserProfileRepository;
 
 import java.util.UUID;
 

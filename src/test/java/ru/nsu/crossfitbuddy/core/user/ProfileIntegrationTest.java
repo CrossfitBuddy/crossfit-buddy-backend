@@ -21,10 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import ru.nsu.crossfitbuddy.auth.security.JwtService;
-import ru.nsu.crossfitbuddy.core.user.domain.UserRole;
-import ru.nsu.crossfitbuddy.core.user.persistence.UserAccountRepository;
-import ru.nsu.crossfitbuddy.support.PostgresContainerSupport;
+import ru.nsu.crossfitbuddy.core.entity.UserRole;
+import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
+import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
+import ru.nsu.crossfitbuddy.core.service.JwtService;
 
 import javax.imageio.ImageIO;
 
@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture;
 @SpringBootTest(properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 @AutoConfigureMockMvc
 @Testcontainers
-class ProfileIntegrationTest extends PostgresContainerSupport {
+class ProfileIntegrationTest extends AbstractRepositoryTest {
     @Autowired
     MockMvc mvc;
 

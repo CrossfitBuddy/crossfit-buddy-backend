@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.nsu.crossfitbuddy.common.api.ApiException;
-import ru.nsu.crossfitbuddy.core.user.domain.UserAvatar;
-import ru.nsu.crossfitbuddy.core.user.persistence.UserAvatarRepository;
-import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
+import ru.nsu.crossfitbuddy.core.entity.UserAvatar;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
+import ru.nsu.crossfitbuddy.core.repository.UserAvatarRepository;
 
 @Service
 @RequiredArgsConstructor

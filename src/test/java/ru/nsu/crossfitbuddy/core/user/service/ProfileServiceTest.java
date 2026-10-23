@@ -9,10 +9,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
-import ru.nsu.crossfitbuddy.core.user.api.UpdateProfileRequest;
-import ru.nsu.crossfitbuddy.core.user.domain.*;
-import ru.nsu.crossfitbuddy.core.user.persistence.*;
-import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+import ru.nsu.crossfitbuddy.core.dto.request.UpdateProfileRequest;
+import ru.nsu.crossfitbuddy.core.entity.*;
+import ru.nsu.crossfitbuddy.core.repository.*;
 
 import java.util.Optional;
 import java.util.Set;

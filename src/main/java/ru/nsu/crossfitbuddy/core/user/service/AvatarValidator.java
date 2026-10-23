@@ -2,7 +2,7 @@ package ru.nsu.crossfitbuddy.core.user.service;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import ru.nsu.crossfitbuddy.common.api.ApiException;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.io.ByteArrayInputStream;
