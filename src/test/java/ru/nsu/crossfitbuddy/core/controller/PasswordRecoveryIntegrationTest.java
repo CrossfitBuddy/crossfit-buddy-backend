@@ -60,7 +60,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
     private static final String REQUEST = "/api/v1/auth/password/request";
     private static final String CONFIRM = "/api/v1/auth/password/confirm";
     private static final String OLD_PASSWORD = "OldStrongPassword123";
-    private static final String NEW_PASSWORD = "NewStrongPassword456";
+    private static final String NEW_PASSWORD = "New1!abc";
     private static final GreenMail SMTP = new GreenMail(new ServerSetup(0, "127.0.0.1", "smtp"));
 
     static {
@@ -137,7 +137,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         login(user.email(), NEW_PASSWORD).andExpect(status().isOk());
         mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + user.token()))
             .andExpect(status().isUnauthorized());
-        confirm(user.email(), code, OLD_PASSWORD, OLD_PASSWORD)
+        confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
             .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         login(user.email(), NEW_PASSWORD).andExpect(status().isOk());
     }
@@ -277,13 +277,18 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
 
     static Stream<org.junit.jupiter.params.provider.Arguments> invalidPasswords() {
         return Stream.of(
-            org.junit.jupiter.params.provider.Arguments.of("Short", "Short123", "Short123", "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("No digits", "LettersOnlyPassword", "LettersOnlyPassword",
+            org.junit.jupiter.params.provider.Arguments.of("Short", "Ab1!xyz", "Ab1!xyz", "VALIDATION_ERROR"),
+            org.junit.jupiter.params.provider.Arguments.of("No digits", "LettersOnly!Password", "LettersOnly!Password",
                 "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("No letters", "123456789012345", "123456789012345",
+            org.junit.jupiter.params.provider.Arguments.of("No letters", "123456789!", "123456789!",
                 "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("Mismatch", NEW_PASSWORD, OLD_PASSWORD, "PASSWORD_MISMATCH"),
-            org.junit.jupiter.params.provider.Arguments.of("UTF-8 bytes", "Я".repeat(40) + "1", "Я".repeat(40) + "1",
+            org.junit.jupiter.params.provider.Arguments.of("No special characters", "LettersOnlyPassword123",
+                "LettersOnlyPassword123",
+                "VALIDATION_ERROR"),
+            org.junit.jupiter.params.provider.Arguments.of("Mismatch", NEW_PASSWORD, "Other1!abc",
+                "PASSWORD_MISMATCH"),
+            org.junit.jupiter.params.provider.Arguments.of("UTF-8 bytes", "界".repeat(24) + "1!",
+                "界".repeat(24) + "1!",
                 "PASSWORD_TOO_LONG"));
     }
 
