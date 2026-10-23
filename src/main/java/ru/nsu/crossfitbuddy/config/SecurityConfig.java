@@ -21,10 +21,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import ru.nsu.crossfitbuddy.auth.security.AccountDetailsService;
 import ru.nsu.crossfitbuddy.auth.security.JwtAuthenticationFilter;
-import ru.nsu.crossfitbuddy.auth.security.JwtProperties;
-import ru.nsu.crossfitbuddy.common.api.SecurityErrorHandler;
+import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
+import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
+import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
 
 import java.time.Clock;
 import java.util.List;
