@@ -1,10 +1,12 @@
 package ru.nsu.crossfitbuddy.core.user.service;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import ru.nsu.crossfitbuddy.common.api.ApiException;
 import ru.nsu.crossfitbuddy.core.user.api.ProfileResponse;
 import ru.nsu.crossfitbuddy.core.user.api.UpdateProfileRequest;
@@ -15,6 +17,7 @@ import ru.nsu.crossfitbuddy.core.user.persistence.TrainerProfileRepository;
 import ru.nsu.crossfitbuddy.core.user.persistence.UserAvatarRepository;
 import ru.nsu.crossfitbuddy.core.user.persistence.UserProfileRepository;
 import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+
 import java.util.UUID;
 
 @Service
@@ -34,41 +37,38 @@ public class ProfileService {
     public ProfileResponse updateCurrentProfile(CurrentUser currentUser, UpdateProfileRequest request) {
         var profile = findProfileOrThrow(currentUser.id(), true);
         var roles = profile.getUser().getRoles();
-        if ((request.hasField("athlete") && !roles.contains(UserRole.ATHLETE))
-            || (request.hasField("trainer") && !roles.contains(UserRole.TRAINER))) {
+
+        if ((request.athlete() != null && !roles.contains(UserRole.ATHLETE))
+            || (request.trainer() != null && !roles.contains(UserRole.TRAINER))) {
             throw new AccessDeniedException("The requested profile role is not assigned to this account");
         }
-        profile.updateDetails(
-            request.hasField("firstName") ? request.getFirstName() : profile.getFirstName(),
-            request.hasField("lastName") ? request.getLastName() : profile.getLastName(),
-            request.hasField("birthDate") ? request.getBirthDate() : profile.getBirthDate(),
-            request.hasField("gender") ? request.getGender() : profile.getGender(),
-            request.hasField("city") ? request.getCity() : profile.getCity(),
-            request.hasField("about") ? request.getAbout() : profile.getAbout(), profile.getAvatarKey());
-        if (request.hasField("athlete")) {
+
+        if ((roles.contains(UserRole.ATHLETE) && request.athlete() == null)
+            || (roles.contains(UserRole.TRAINER) && request.trainer() == null)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
+                "The profile data for every assigned role is required.");
+        }
+
+        profile.updateDetails(request.firstName(), request.lastName(), request.birthDate(), request.gender(),
+            request.city(), request.about(), profile.getAvatarKey());
+
+        if (request.athlete() != null) {
             var athleteProfile = athleteProfileRepository.findById(profile.getId())
                 .orElseThrow(ProfileService::roleProfileNotFound);
-            var athletePatch = request.getAthlete();
-            athleteProfile.updateMeasurements(
-                athletePatch.hasField("heightCm") ? athletePatch.getHeightCm() : athleteProfile.getHeightCm(),
-                athletePatch.hasField("weightKg") ? athletePatch.getWeightKg() : athleteProfile.getWeightKg());
-            athleteProfile.updatePreferences(
-                athletePatch.hasField("fitnessLevel")
-                    ? athletePatch.getFitnessLevel() : athleteProfile.getFitnessLevel(),
-                athletePatch.hasField("rxPreference")
-                    ? athletePatch.getRxPreference() : athleteProfile.getRxPreference());
+            var athlete = request.athlete();
+
+            athleteProfile.updateMeasurements(athlete.heightCm(), athlete.weightKg());
+            athleteProfile.updatePreferences(athlete.fitnessLevel(), athlete.rxPreference());
         }
-        if (request.hasField("trainer")) {
+
+        if (request.trainer() != null) {
             var trainerProfile = trainerProfileRepository.findById(profile.getId())
                 .orElseThrow(ProfileService::roleProfileNotFound);
-            var trainerPatch = request.getTrainer();
-            trainerProfile.updateDetails(
-                trainerPatch.hasField("specializations")
-                    ? trainerPatch.getSpecializations() : trainerProfile.getSpecializations(),
-                trainerPatch.hasField("experienceYears")
-                    ? trainerPatch.getExperienceYears() : trainerProfile.getExperienceYears(),
-                trainerPatch.hasField("methodology") ? trainerPatch.getMethodology() : trainerProfile.getMethodology());
+            var trainer = request.trainer();
+
+            trainerProfile.updateDetails(trainer.specializations(), trainer.experienceYears(), trainer.methodology());
         }
+
         return toResponse(profile);
     }
 
@@ -87,10 +87,11 @@ public class ProfileService {
             ? trainerProfileRepository.findById(profile.getId()).map(value -> new ProfileResponse.TrainerFields(
                 value.getSpecializations(), value.getExperienceYears(), value.getMethodology()))
                 .orElseThrow(ProfileService::roleProfileNotFound) : null;
+
         return new ProfileResponse(account.getId(), account.getEmail(), account.getRoles(),
             profile.getFirstName(), profile.getLastName(), profile.getDisplayName(), profile.getBirthDate(),
             profile.getGender(), profile.getCity(), profile.getAbout(),
-            userAvatarRepository.existsById(profile.getId()) ? "/api/users/me/avatar" : null,
+            userAvatarRepository.existsById(profile.getId()) ? "/api/v1/users/me/avatar" : null,
             extractInitial(profile.getFirstName()) + extractInitial(profile.getLastName()), athlete, trainer);
     }
 

@@ -447,6 +447,7 @@ class AuthIntegrationTest extends PostgresContainerSupport {
                 schema + ".trainer_profile.user_id");
     }
 
+
     private ResultActions protectedRequest(String token) throws Exception {
         return mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }

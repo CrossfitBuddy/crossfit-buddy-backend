@@ -1,7 +1,9 @@
 package ru.nsu.crossfitbuddy.core.user.api;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,14 +16,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import ru.nsu.crossfitbuddy.common.api.ApiException;
 import ru.nsu.crossfitbuddy.core.user.service.AvatarService;
 import ru.nsu.crossfitbuddy.core.user.service.AvatarValidator;
 import ru.nsu.crossfitbuddy.shared.security.CurrentUser;
+
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/users/me/avatar")
+@RequestMapping("/api/v1/users/me/avatar")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class AvatarController {
@@ -34,20 +38,30 @@ public class AvatarController {
             throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
                 "Avatar must not exceed 5 MB.");
         }
+
         avatarService.replaceCurrentAvatar(currentUser, file.getBytes());
-        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+
+        return ResponseEntity.noContent()
+            .cacheControl(CacheControl.noStore())
+            .build();
     }
 
     @GetMapping
     public ResponseEntity<byte[]> getCurrentAvatar(@AuthenticationPrincipal CurrentUser currentUser) {
         var avatar = avatarService.getCurrentAvatar(currentUser);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .contentType(MediaType.parseMediaType(avatar.contentType())).body(avatar.content());
+
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noStore())
+            .contentType(MediaType.parseMediaType(avatar.contentType()))
+            .body(avatar.content());
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteCurrentAvatar(@AuthenticationPrincipal CurrentUser currentUser) {
         avatarService.deleteCurrentAvatar(currentUser);
-        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+
+        return ResponseEntity.noContent()
+            .cacheControl(CacheControl.noStore())
+            .build();
     }
 }
