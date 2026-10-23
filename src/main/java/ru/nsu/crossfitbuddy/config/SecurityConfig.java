@@ -50,7 +50,7 @@ public class SecurityConfig {
                     "/swagger-ui.html")
                 .permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register",
-                    "/api/v1/auth/password/**", "/send-email")
+                    "/api/v1/auth/password/request", "/api/v1/auth/password/confirm", "/send-email")
                 .permitAll()
                 .requestMatchers("/api/v1/admin/**")
                 .hasRole("ADMIN")

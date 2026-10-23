@@ -19,12 +19,15 @@ spring:
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
   mail:
-    host: localhost
-    port: 1025
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
     protocol: smtp
     properties:
       mail:
         smtp:
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
           auth: false
           starttls:
             enable: false

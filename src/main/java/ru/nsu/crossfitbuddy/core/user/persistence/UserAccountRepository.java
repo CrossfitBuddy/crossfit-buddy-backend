@@ -2,6 +2,11 @@ package ru.nsu.crossfitbuddy.core.user.persistence;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import ru.nsu.crossfitbuddy.core.user.domain.UserAccount;
 
@@ -15,6 +20,10 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     @Override
     @EntityGraph(attributePaths = "roles")
     Optional<UserAccount> findById(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select account from UserAccount account where account.email = :email")
+    Optional<UserAccount> findByEmailForUpdate(@Param("email") String email);
 
     boolean existsByEmail(String email);
 }

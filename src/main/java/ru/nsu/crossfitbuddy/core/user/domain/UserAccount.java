@@ -87,6 +87,11 @@ public class UserAccount {
         return Collections.unmodifiableSet(roles);
     }
 
+    public void resetPassword(String passwordHash) {
+        this.passwordHash = java.util.Objects.requireNonNull(passwordHash);
+        this.tokenVersion = Math.incrementExact(tokenVersion);
+    }
+
     public void selectActiveRole(UserRole role) {
         if (!roles.contains(role) || (roles.contains(UserRole.ADMIN) && role != UserRole.ADMIN)) {
             throw new IllegalArgumentException("Role is not available for this account");

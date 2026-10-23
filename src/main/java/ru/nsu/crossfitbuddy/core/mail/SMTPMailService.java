@@ -26,7 +26,7 @@ public class SMTPMailService implements MailService {
     public void sendHtml(String to, String subject, String html) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message,
-                MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED);
+                MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
 
         messageHelper.setTo(to);
         messageHelper.setSubject(subject);
