@@ -33,6 +33,29 @@ import java.util.List;
 @EnableMethodSecurity
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
+    private static final String[] ENDPOINTS_INFRASTRUCTURE = {
+        "/actuator/health",
+        "/actuator/health/**"
+    };
+
+    private static final String[] ENDPOINTS_WHITELIST = {
+        "/actuator/health",
+        "/actuator/health/**",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/password/**",
+        "/send-email"
+    };
+
+    private static final String[] ENDPOINTS_SWAGGER = {
+        "/swagger-ui.html",
+        "/swagger-ui/**",
+        "/swagger-resources",
+        "/swagger-resources/**",
+        "/v3/api-docs/**"
+    };
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
         SecurityErrorHandler errors) throws Exception {
@@ -45,21 +68,11 @@ public class SecurityConfig {
             .logout(logout -> logout.disable())
             .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**",
-                    "/swagger-ui.html")
-                .permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register",
-                    "/api/v1/auth/password/**", "/send-email")
-                .permitAll()
-                .requestMatchers("/api/v1/admin/**")
-                .hasRole("ADMIN")
-                .requestMatchers("/api/v1/trainer/**")
-                .hasRole("TRAINER")
-                .requestMatchers("/api/v1/athlete/**")
-                .hasRole("ATHLETE")
-                .anyRequest()
-                .authenticated())
+            .authorizeHttpRequests(request -> request
+                .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
+                .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
+                .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
+                .anyRequest().authenticated())
             .build();
     }
 
