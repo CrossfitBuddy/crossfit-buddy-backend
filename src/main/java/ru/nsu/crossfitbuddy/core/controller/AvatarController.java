@@ -32,14 +32,19 @@ public class AvatarController {
     private final AvatarService avatarService;
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> replaceCurrentAvatar(@AuthenticationPrincipal CurrentUser currentUser,
+    public ResponseEntity<Void> replaceCurrentAvatar(
+        @AuthenticationPrincipal CurrentUser currentUser,
         @RequestPart("file") MultipartFile file) throws IOException {
+
+        if (file.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_FILE", "File must not be empty.");
+        }
         if (file.getSize() > AvatarValidator.MAX_BYTES) {
             throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
                 "Avatar must not exceed 5 MB.");
         }
 
-        avatarService.replaceCurrentAvatar(currentUser, file.getBytes());
+        avatarService.replaceCurrentAvatar(currentUser, file);
 
         return ResponseEntity.noContent()
             .cacheControl(CacheControl.noStore())
