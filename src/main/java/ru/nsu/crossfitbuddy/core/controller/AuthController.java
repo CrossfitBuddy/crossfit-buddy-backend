@@ -17,19 +17,27 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import ru.nsu.crossfitbuddy.core.dto.request.EmailConfirmRequest;
+import ru.nsu.crossfitbuddy.core.dto.request.EmailResendRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.AccountResponse;
 import ru.nsu.crossfitbuddy.core.dto.request.ActiveRoleRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.LoginRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.RegisterRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.AuthResponse;
+import ru.nsu.crossfitbuddy.core.dto.response.RegisterResponse;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.service.AuthService;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
+import ru.nsu.crossfitbuddy.core.service.EmailTokenService;
 
 @RestController
 @RequestMapping(Paths.AUTH)
 @RequiredArgsConstructor
 public class AuthController {
+
     private final AuthService authService;
+
+    private final EmailTokenService tokenService;
 
     @PostMapping(Paths.AUTH_LOGIN)
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -37,7 +45,7 @@ public class AuthController {
     }
 
     @PostMapping(Paths.AUTH_REGISTER)
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         return response(HttpStatus.CREATED, authService.register(request));
     }
 
@@ -56,7 +64,31 @@ public class AuthController {
         return response(HttpStatus.OK, authService.switchActiveRole(currentUser, request.role()));
     }
 
-    private static ResponseEntity<AuthResponse> response(HttpStatus status, AuthResponse body) {
-        return ResponseEntity.status(status).cacheControl(CacheControl.noStore()).body(body);
+    @PostMapping(Paths.AUTH_EMAIL_CONFIRM)
+    public ResponseEntity<Void> confirm(@RequestBody EmailConfirmRequest request) {
+        try {
+            tokenService.confirmEmail(request.token());
+            return ResponseEntity.ok().build();
+        }
+        catch (ApiException e) {
+            return ResponseEntity.status(e.status()).build();
+        }
+    }
+
+    @PostMapping(Paths.AUTH_EMAIL_RESEND)
+    public ResponseEntity<Void> resend(@RequestBody EmailResendRequest request) {
+        try {
+            tokenService.resendEmail(request.email());
+            return ResponseEntity.ok().build();
+        }
+        catch (ApiException e) {
+            return ResponseEntity.status(e.status()).build();
+        }
+    }
+
+    private static <T> ResponseEntity<T> response(HttpStatus status, T body) {
+        return ResponseEntity.status(status)
+            .cacheControl(CacheControl.noStore())
+            .body(body);
     }
 }

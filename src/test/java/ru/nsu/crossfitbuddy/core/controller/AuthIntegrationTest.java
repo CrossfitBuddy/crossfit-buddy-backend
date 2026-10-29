@@ -1,6 +1,8 @@
-package ru.nsu.crossfitbuddy.auth;
+package ru.nsu.crossfitbuddy.core.controller;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -16,8 +18,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +32,7 @@ import ru.nsu.crossfitbuddy.auth.security.annotation.TrainerAuthority;
 import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
+import ru.nsu.crossfitbuddy.core.service.EmailTokenService;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
 import ru.nsu.crossfitbuddy.core.repository.AthleteProfileRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
@@ -68,25 +71,47 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     @Autowired
     JwtService jwtService;
 
+    @MockitoBean
+    private EmailTokenService emailTokenService;
+
     @Test
-    void registersHashesPasswordAndAuthenticatesUsingReturnedToken() throws Exception {
+    void registerCreatesUnconfirmedAccountAndLoginWorksAfterConfirmation() throws Exception {
         String email = generateUniqueEmail();
+
         var result = register(email, PASSWORD, PASSWORD)
             .andExpect(status().isCreated())
             .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
-            .andExpect(jsonPath("user.roles[0]").value("ATHLETE"))
-            .andExpect(jsonPath("user.activeRole").value("ATHLETE"))
-            .andExpect(jsonPath("user.passwordHash").doesNotExist())
+            .andExpect(jsonPath("userId").isString())
+            .andExpect(jsonPath("message").isNotEmpty())
+            .andExpect(jsonPath("accessToken").doesNotExist())
+            .andExpect(jsonPath("user").doesNotExist())
             .andReturn();
-        String token = json.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
-        var account = userAccountRepository.findByEmail(email).orElseThrow();
+
+        UUID userId = UUID.fromString(
+            json.readTree(result.getResponse().getContentAsString()).get("userId").asText()
+        );
+
+        verify(emailTokenService).sendConfirmationEmail(
+            argThat(account -> account != null && userId.equals(account.getId()))
+        );
+
+        var account = userAccountRepository.findById(userId).orElseThrow();
+
+        assertThat(account.isEnabled()).isFalse();
         assertThat(account.getPasswordHash()).startsWith("$2a$12$").isNotEqualTo(PASSWORD);
         assertThat(passwordEncoder.matches(PASSWORD, account.getPasswordHash())).isTrue();
         assertThat(userProfileRepository.findById(account.getId()).orElseThrow().getFirstName()).isEqualTo("Иван");
         assertThat(athleteProfileRepository.findById(account.getId())).isPresent();
+
+        database.update("update user_account set enabled = true where id = ?", userId);
+
+        String token = extractAccessToken(login(email, PASSWORD)
+            .andExpect(status().isOk()));
+
         mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("email").value(email));
+
         mvc.perform(get("/api/v1/workouts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
     }
@@ -352,7 +377,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void appliesMigrationsAndEnforcesRoleAndRecoveryConstraints() {
         assertThat(database.queryForObject("select count(*) from roles", Integer.class)).isEqualTo(3);
         assertThat(database.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(19);
+            .isEqualTo(20);
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
@@ -373,7 +398,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .defaultSchema(schema)
             .locations("classpath:db/migration")
             .load().migrate();
-        assertThat(result.migrationsExecuted).isEqualTo(19);
+        assertThat(result.migrationsExecuted).isEqualTo(20);
         assertThat(database.queryForObject("select count(*) from " + schema + ".roles", Integer.class))
             .isEqualTo(3);
         assertThat(database.queryForList(
