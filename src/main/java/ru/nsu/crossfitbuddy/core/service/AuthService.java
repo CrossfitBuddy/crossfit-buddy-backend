@@ -16,6 +16,7 @@ import ru.nsu.crossfitbuddy.core.dto.response.AccountResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.AuthResponse;
 import ru.nsu.crossfitbuddy.core.dto.request.LoginRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.RegisterRequest;
+import ru.nsu.crossfitbuddy.core.dto.response.RegisterResponse;
 import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
 import ru.nsu.crossfitbuddy.core.entity.AthleteProfile;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
@@ -41,6 +42,7 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
     private final AthleteProfileRepository athleteProfileRepository;
     private final JwtService jwtService;
+    private final EmailTokenService emailTokenService;
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -56,37 +58,46 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         validatePasswordByteLength(request.password());
         if (!request.password().equals(request.passwordConfirmation())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "Passwords do not match.");
         }
+
         String email = AccountDetailsService.normalizeEmail(request.email());
         if (userAccountRepository.existsByEmail(email)) {
             throw emailConflict();
         }
+
         String firstName = request.firstName().strip();
         String lastName = request.lastName().strip();
+
         var account = UserAccount.builder()
             .email(email)
             .passwordHash(passwordEncoder.encode(request.password()))
             .roles(new HashSet<>(Set.of(UserRole.ATHLETE)))
             .activeRole(UserRole.ATHLETE)
+            .enabled(false)
             .build();
+
         try {
             userAccountRepository.saveAndFlush(account);
-        } catch (DataIntegrityViolationException exception) {
-            if ("ux_user_account_email_normalized".equals(constraintName(exception)) || "user_account_email_key"
-                .equals(constraintName(exception))) {
+        }
+        catch (DataIntegrityViolationException exception) {
+            if ("ux_user_account_email_normalized".equals(constraintName(exception))
+                || "user_account_email_key".equals(constraintName(exception))) {
                 throw emailConflict();
             }
             throw exception;
         }
+
         userProfileRepository.save(UserProfile.create(account, firstName, lastName));
         athleteProfileRepository.save(AthleteProfile.create(account));
-        var response = createAuthResponse(account, UserRole.ATHLETE);
-        log.info("Registration response prepared, transaction commit pending: userId={}", account.getId());
-        return response;
+
+        emailTokenService.sendConfirmationEmail(account);
+
+        log.info("Registration completed, confirmation email sent: userId={}", account.getId());
+        return new RegisterResponse(account.getId(), "Проверьте вашу почту для подтверждения регистрации");
     }
 
     @Transactional(readOnly = true)
