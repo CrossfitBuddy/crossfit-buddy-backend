@@ -1,5 +1,8 @@
 package ru.nsu.crossfitbuddy.config;
 
+import java.time.Clock;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -29,9 +32,6 @@ import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
 import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
-
-import java.time.Clock;
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
