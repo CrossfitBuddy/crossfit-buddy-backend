@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.auth.security;
+package ru.nsu.crossfitbuddy.core.security;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -38,10 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain chain
-    ) throws ServletException, IOException {
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
         var header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
@@ -55,8 +54,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var rawJwt = header.substring(TOKEN_POSITION);
             var verifiedJwt = jwtService.verify(rawJwt);
 
-            var user = userAccountRepository.findByIdAndDeletedFalseAndEnabledTrue(verifiedJwt.userId())
-                .orElseThrow(() -> new BadCredentialsException("Invalid account"));
+            var user = userAccountRepository
+                    .findByIdAndDeletedFalseAndEnabledTrue(verifiedJwt.userId())
+                    .orElseThrow(() -> new BadCredentialsException("Invalid account"));
             validateUser(user, verifiedJwt);
 
             var principal = asPrincipal(user, verifiedJwt);
@@ -67,7 +67,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (JwtException | IllegalArgumentException | BadCredentialsException exception) {
             SecurityContextHolder.clearContext();
-            securityErrorHandler.commence(request, response, new BadCredentialsException("Invalid access token"));
+            securityErrorHandler.commence(request, response,
+                    new BadCredentialsException("Invalid access token"));
         }
 
         chain.doFilter(request, response);
@@ -86,20 +87,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private CurrentUser asPrincipal(UserAccount user, JwtService.VerifiedToken token) {
         return new CurrentUser(
-            user.getId(),
-            user.getEmail(),
-            token.activeRole().name()
-        );
+                user.getId(),
+                user.getEmail(),
+                token.activeRole().name());
     }
 
-    private UsernamePasswordAuthenticationToken asAuthenticationToken(CurrentUser principal, UserAccount user) {
+    private UsernamePasswordAuthenticationToken asAuthenticationToken(CurrentUser principal,
+            UserAccount user) {
         return new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name()))
-                .toList()
-        );
+                principal,
+                null,
+                user.getRoles().stream()
+                        .map(role -> new SimpleGrantedAuthority(role.name()))
+                        .toList());
     }
 
     private void updateSecurityContext(UsernamePasswordAuthenticationToken authToken) {

@@ -1,11 +1,13 @@
 package ru.nsu.crossfitbuddy.config;
 
+import java.time.Clock;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AccountStatusUserDetailsChecker;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -21,13 +23,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import ru.nsu.crossfitbuddy.auth.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
+import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
-
-import java.time.Clock;
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -35,45 +34,48 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] ENDPOINTS_INFRASTRUCTURE = {
-        "/actuator/health",
-        "/actuator/health/**"
+            "/actuator/health",
+            "/actuator/health/**"
     };
 
     private static final String[] ENDPOINTS_WHITELIST = {
-        "/actuator/health",
-        "/actuator/health/**",
-        "/api/v1/auth/login",
-        "/api/v1/auth/register",
-        "/api/v1/auth/password/**",
-        "/send-email"
+            "/actuator/health",
+            "/actuator/health/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/password/**",
+            "/send-email"
     };
 
     private static final String[] ENDPOINTS_SWAGGER = {
-        "/swagger-ui.html",
-        "/swagger-ui/**",
-        "/swagger-resources",
-        "/swagger-resources/**",
-        "/v3/api-docs/**"
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/swagger-resources",
+            "/swagger-resources/**",
+            "/v3/api-docs/**"
     };
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
-        SecurityErrorHandler errors) throws Exception {
+            SecurityErrorHandler errors) throws Exception {
         return http.csrf(csrf -> csrf.disable())
-            .cors(cors -> {})
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .requestCache(cache -> cache.disable())
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .logout(logout -> logout.disable())
-            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(request -> request
-                .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
-                .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
-                .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
-                .anyRequest().authenticated())
-            .build();
+                .cors(cors -> {
+                })
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(cache -> cache.disable())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable())
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors)
+                        .accessDeniedHandler(errors))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
+                        .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
+                        .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
+                        .anyRequest().authenticated())
+                .build();
     }
 
     @Bean
@@ -82,10 +84,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AccountDetailsService accounts, PasswordEncoder encoder) {
+    AuthenticationManager authenticationManager(AccountDetailsService accounts,
+            PasswordEncoder encoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(accounts);
         provider.setPasswordEncoder(encoder);
-        provider.setPreAuthenticationChecks(details -> {});
+        provider.setPreAuthenticationChecks(details -> {
+        });
         provider.setPostAuthenticationChecks(new AccountStatusUserDetailsChecker());
         return new ProviderManager(provider);
     }
@@ -96,17 +100,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+    FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter filter) {
         var registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration
+                .setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(false);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
