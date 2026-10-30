@@ -26,8 +26,15 @@ spring:
     parser:
       strict-duplicate-detection: true
   mail:
+<<<<<<< HEAD
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
+=======
+    templates:
+      emailConfirm: mail/emailConfirm
+    host: localhost
+    port: 1025
+>>>>>>> 846f140 ([СВ-18066] Шаблон для подтверждения письма и изменение api сервиса)
     protocol: smtp
     properties:
       mail:
@@ -38,7 +45,6 @@ spring:
           auth: false
           starttls:
             enable: false
-
 
 server:
   port: ${APP_PORT:8080}
@@ -68,6 +74,10 @@ app:
     max-attempts: ${PASSWORD_RECOVERY_MAX_ATTEMPTS:5}
   jwt:
     secret: ${JWT_SECRET:}
+<<<<<<< HEAD
+=======
+    #    secret: ${JWT_SECRET}
+>>>>>>> 846f140 ([СВ-18066] Шаблон для подтверждения письма и изменение api сервиса)
     issuer: ${JWT_ISSUER:crossfitbuddy}
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
   cors:

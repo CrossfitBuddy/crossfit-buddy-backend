@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Подтверждение электронной почты</title>
+  </head>
+
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #263238;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="background-color: #f4f6f8; padding: 32px 16px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="
+              max-width: 560px;
+              background-color: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+            "
+          >
+            <tr>
+              <td style="padding: 36px 32px 24px; text-align: center">
+                <div
+                  style="
+                    display: inline-block;
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: bold;
+                  "
+                >
+                  Подтверждение почты
+                </div>
+
+                <h1 style="margin: 24px 0 12px; font-size: 26px; line-height: 1.3; color: #17212b">
+                  Завершите регистрацию
+                </h1>
+
+                <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #52616b">
+                  Спасибо, что зарегистрировались в приложении CrosfitBuddy! Подтвердите адрес
+                  электронной почты, введя код расположеный ниже.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 8px 32px 28px">
+                <div
+                  style="
+                    margin: 0 auto;
+                    padding: 18px 24px;
+                    max-width: 280px;
+                    border: 1px solid #dce5e9;
+                    border-radius: 12px;
+                    background-color: #f8fafb;
+                  "
+                >
+                  <span
+                    th:text="${code}"
+                    style="
+                      font-size: 32px;
+                      line-height: 1.3;
+                      font-weight: bold;
+                      letter-spacing: 8px;
+                      color: #1565c0;
+                      overflow-wrap: break-word;
+                    "
+                  >
+                  </span>
+                </div>
+                <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: #74828a">
+                  Введите этот код на странице регистрации. Время истичения действительности кода:
+                  <span th:text="${#temporals.format(dateTime, 'MEDIUM')}"></span>
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 0 32px 32px">
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #52616b">
+                  Если вы не регистрировались в приложении, просто проигнорируйте это письмо.
+                </p>
+                <p style="margin: 24px 0 0; font-size: 14px; line-height: 1.6; color: #52616b">
+                  С уважением,<br />
+                  <strong style="color: #263238">Команда приложения CrosfitBuddy</strong>
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="margin: 20px 0 0; font-size: 12px; color: #8a969d">
+            Это автоматическое сообщение — пожалуйста, не отвечайте на него.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
