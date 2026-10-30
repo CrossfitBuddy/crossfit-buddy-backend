@@ -33,6 +33,8 @@ public class ExercisesMetrics {
     @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы")
     private String unit;
 
+    private Float value;
+
     @ManyToOne
     @JoinColumn
     private GeneralExercises generalExercises;

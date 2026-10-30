@@ -31,7 +31,6 @@ public class GeneralExercises {
     private String description;
 
     @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true)
-
     private List<ExercisesMetrics> exercisesMetrics;
 
 }
