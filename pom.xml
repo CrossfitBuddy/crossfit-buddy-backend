@@ -25,6 +25,7 @@
     <testcontainers.version>1.21.4</testcontainers.version>
     <archunit.version>1.4.1</archunit.version>
     <greenmail.version>2.1.12</greenmail.version>
+    <thymeleaf.version>3.1.5.RELEASE</thymeleaf.version>
   </properties>
 
   <dependencies>
@@ -137,6 +138,10 @@
       <version>${greenmail.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>  
   </dependencies>
 
   <build>

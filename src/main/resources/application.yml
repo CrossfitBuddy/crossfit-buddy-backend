@@ -33,6 +33,8 @@ spring:
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
   mail:
+    templates:
+      emailConfirm: mail/emailConfirm
     host: localhost
     port: 1025
     protocol: smtp
@@ -42,7 +44,6 @@ spring:
           auth: false
           starttls:
             enable: false
-
 
 server:
   port: ${APP_PORT:8080}
@@ -66,7 +67,7 @@ app:
   security-enabled: true
   jwt:
     secret: ${JWT_SECRET:}
-#    secret: ${JWT_SECRET}
+    #    secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:crossfitbuddy}
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
   cors:
