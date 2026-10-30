@@ -23,9 +23,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest(properties = {
-    "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
-    "app.password-recovery.code-ttl=20m",
-    "app.password-recovery.max-attempts=6"
+        "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "app.password-recovery.code-ttl=20m",
+        "app.password-recovery.max-attempts=6"
 })
 class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
     @Autowired
@@ -44,11 +44,10 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
     void usesConfiguredTtlAndAttemptLimit() throws Exception {
         String email = UUID.randomUUID() + "@example.com";
         var account = accounts.save(UserAccount.builder()
-            .email(email)
-            .passwordHash("old-hash")
-            .enabled(true)
-            .build()
-        );
+                .email(email)
+                .passwordHash("old-hash")
+                .enabled(true)
+                .build());
         var delivered = new StringBuilder();
         doAnswer(invocation -> {
             delivered.append(invocation.getArgument(2, String.class));
@@ -58,8 +57,8 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
         service.requestCode(email);
 
         assertThat(database.queryForObject(
-            "select extract(epoch from expires_at-created_at)::int from password_reset_code where user_id=?",
-            Integer.class, account.getId())).isEqualTo(1200);
+                "select extract(epoch from expires_at-created_at)::int from password_reset_code where user_id=?",
+                Integer.class, account.getId())).isEqualTo(1200);
         assertThat(delivered).contains("1200 секунд");
         var matcher = Pattern.compile("[0-9]{6}").matcher(delivered);
         assertThat(matcher.find()).isTrue();
@@ -67,8 +66,8 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
         String wrongCode = code.equals("000000") ? "000001" : "000000";
         for (int i = 0; i < 5; i++) {
             assertThatThrownBy(() -> service.resetPassword(
-                new PasswordResetConfirmation(email, wrongCode, "New1!abc", "New1!abc")))
-                .isInstanceOf(ApiException.class);
+                    new PasswordResetConfirmation(email, wrongCode, "New1!abc", "New1!abc")))
+                    .isInstanceOf(ApiException.class);
         }
         service.resetPassword(new PasswordResetConfirmation(email, code, "New1!abc", "New1!abc"));
         assertThat(accounts.findById(account.getId()).orElseThrow().getTokenVersion()).isEqualTo(1);

@@ -75,38 +75,37 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         String email = generateUniqueEmail();
 
         var result = register(email, PASSWORD, PASSWORD)
-            .andExpect(status().isCreated())
-            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
-            .andExpect(jsonPath("userId").isString())
-            .andExpect(jsonPath("message").isNotEmpty())
-            .andExpect(jsonPath("accessToken").doesNotExist())
-            .andExpect(jsonPath("user").doesNotExist())
-            .andReturn();
+                .andExpect(status().isCreated())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                .andExpect(jsonPath("userId").isString())
+                .andExpect(jsonPath("message").isNotEmpty())
+                .andExpect(jsonPath("accessToken").doesNotExist())
+                .andExpect(jsonPath("user").doesNotExist())
+                .andReturn();
 
         UUID userId = UUID.fromString(
-            json.readTree(result.getResponse().getContentAsString()).get("userId").asText()
-        );
+                json.readTree(result.getResponse().getContentAsString()).get("userId").asText());
 
         verify(emailTokenService).sendConfirmationEmail(
-            argThat(account -> account != null && userId.equals(account.getId()))
-        );
+                argThat(account -> account != null && userId.equals(account.getId())));
 
         var account = userAccountRepository.findById(userId).orElseThrow();
 
         assertThat(account.isEnabled()).isFalse();
         assertThat(account.getPasswordHash()).isNotEqualTo(PASSWORD);
         assertThat(passwordEncoder.matches(PASSWORD, account.getPasswordHash())).isTrue();
-        assertThat(userProfileRepository.findById(account.getId()).orElseThrow().getFirstName()).isEqualTo("Иван");
+        assertThat(userProfileRepository.findById(account.getId()).orElseThrow().getFirstName())
+                .isEqualTo("Иван");
         assertThat(athleteProfileRepository.findById(account.getId())).isPresent();
 
         database.update("update user_account set enabled = true where id = ?", userId);
 
         String token = extractAccessToken(login(email, PASSWORD)
-            .andExpect(status().isOk()));
+                .andExpect(status().isOk()));
 
         mvc.perform(get(AUTH_ME_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("email").value(email));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("email").value(email));
     }
 
     @Test
@@ -115,12 +114,12 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         createTestAccount(email, true, UserRole.ATHLETE);
 
         login(email, "wrong-password")
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
 
         login(generateUniqueEmail(), PASSWORD)
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
     }
 
     @Test
@@ -129,40 +128,43 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         createTestAccount(email, true, UserRole.ATHLETE);
 
         login(email, "incorrect-password")
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("timestamp").isNotEmpty())
-            .andExpect(jsonPath("status").value(401))
-            .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"))
-            .andExpect(jsonPath("message").value("Invalid email or password."))
-            .andExpect(jsonPath("path").value(AUTH_LOGIN_PATH))
-            .andExpect(jsonPath("password").doesNotExist());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("timestamp").isNotEmpty())
+                .andExpect(jsonPath("status").value(401))
+                .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("message").value("Invalid email or password."))
+                .andExpect(jsonPath("path").value(AUTH_LOGIN_PATH))
+                .andExpect(jsonPath("password").doesNotExist());
 
         register(generateUniqueEmail(), PASSWORD, "DifferentPassword123")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("message").value("Passwords do not match."));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("message").value("Passwords do not match."));
 
         mvc.perform(get(AUTH_ME_PATH))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("message").value("Authentication is required or the access token is invalid."));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("message")
+                        .value("Authentication is required or the access token is invalid."));
     }
 
     @Test
-    void returnsExplicitAndDeterministicValidationMessagesRegardlessOfRequestLocale() throws Exception {
-        for (String locale : new String[]{"ru", "en"}) {
+    void returnsExplicitAndDeterministicValidationMessagesRegardlessOfRequestLocale()
+            throws Exception {
+        for (String locale : new String[] { "ru", "en" }) {
             mvc.perform(post(AUTH_LOGIN_PATH)
                     .header(HttpHeaders.ACCEPT_LANGUAGE, locale)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(json.writeValueAsString(Map.of("email", "invalid-email", "password", PASSWORD))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("message").value("email: Enter a valid email address."));
+                    .content(json.writeValueAsString(
+                            Map.of("email", "invalid-email", "password", PASSWORD))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("code").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("message").value("email: Enter a valid email address."));
         }
 
         mvc.perform(post(AUTH_LOGIN_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email", generateUniqueEmail()))))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("message").value("password: Password is required."));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("message").value("password: Password is required."));
 
         var body = registrationBody(generateUniqueEmail(), "", "");
         body.put("firstName", "");
@@ -171,8 +173,8 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         mvc.perform(post(AUTH_REGISTER_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("message").value("firstName: First name is required."));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("message").value("firstName: First name is required."));
     }
 
     @Test
@@ -181,39 +183,39 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         UUID id = createTestAccount(email, false, UserRole.ATHLETE);
 
         login(email, "wrong-password")
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"));
 
         login(email, PASSWORD)
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("code").value("ACCOUNT_DISABLED"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("code").value("ACCOUNT_DISABLED"));
 
         database.update("update user_account set enabled = true, deleted = true where id = ?", id);
 
         login(email, PASSWORD)
-            .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void validatesRegistrationAndRejectsClientSuppliedRoles() throws Exception {
         String invalidJson = "{";
         register(generateUniqueEmail(), "short1", "short1")
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
 
         register(generateUniqueEmail(), "OnlyLettersPassword", "OnlyLettersPassword")
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
 
         register(generateUniqueEmail(), PASSWORD, "DifferentPassword123")
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("code").value("PASSWORD_MISMATCH"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("PASSWORD_MISMATCH"));
 
         register("not-email", PASSWORD, PASSWORD)
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
 
         String longUtf8 = "界".repeat(24) + "123";
         register(generateUniqueEmail(), longUtf8, longUtf8)
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("code").value("PASSWORD_TOO_LONG"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("PASSWORD_TOO_LONG"));
 
         var body = registrationBody(generateUniqueEmail(), PASSWORD, PASSWORD);
         body.put("role", UserRole.ADMIN);
@@ -221,26 +223,27 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         mvc.perform(post(AUTH_REGISTER_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("code").value("VALIDATION_ERROR"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("VALIDATION_ERROR"));
 
         mvc.perform(post(AUTH_LOGIN_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     void rejectsAmbiguousJsonAndOversizedFieldValues() throws Exception {
-        for (String body : new String[]{
-            "{\"email\":\"one@example.com\",\"email\":\"two@example.com\",\"password\":\"" + PASSWORD + "\"}",
-            "{\"email\":\"one@example.com\",\"password\":\"" + "a".repeat(9000) + "\"}"
+        for (String body : new String[] {
+                "{\"email\":\"one@example.com\",\"email\":\"two@example.com\",\"password\":\""
+                        + PASSWORD + "\"}",
+                "{\"email\":\"one@example.com\",\"password\":\"" + "a".repeat(9000) + "\"}"
         }) {
             mvc.perform(post(AUTH_LOGIN_PATH)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("code").value("INVALID_REQUEST"));
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("code").value("INVALID_REQUEST"));
         }
     }
 
@@ -249,23 +252,22 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         String email = generateUniqueEmail();
 
         register(email, PASSWORD, PASSWORD)
-            .andExpect(status().isCreated());
+                .andExpect(status().isCreated());
 
         register(email.toUpperCase(Locale.ROOT), PASSWORD, PASSWORD)
-            .andExpect(status().isConflict());
+                .andExpect(status().isConflict());
 
         String concurrentEmail = generateUniqueEmail();
         var one = CompletableFuture.supplyAsync(() -> registrationStatus(concurrentEmail));
         var two = CompletableFuture.supplyAsync(() -> registrationStatus(concurrentEmail));
 
         assertThat(List.of(one.join(), two.join()))
-            .containsExactlyInAnyOrder(201, 409);
+                .containsExactlyInAnyOrder(201, 409);
 
         assertThat(database.queryForObject(
-            "select count(*) from user_account where email = ?",
-            Long.class,
-            concurrentEmail
-        )).isEqualTo(1);
+                "select count(*) from user_account where email = ?",
+                Long.class,
+                concurrentEmail)).isEqualTo(1);
     }
 
     @Test
@@ -274,8 +276,8 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         createTestAccount(trainerEmail, true, UserRole.TRAINER);
 
         login(trainerEmail, PASSWORD)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("user.activeRole").value("TRAINER"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("user.activeRole").value("TRAINER"));
 
         String athleteEmail = generateUniqueEmail();
         UUID id = createTestAccount(athleteEmail, true, UserRole.ATHLETE);
@@ -283,27 +285,25 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
         database.update("update user_account set active_role = 'TRAINER' where id = ?", id);
 
         login(athleteEmail, PASSWORD)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("user.activeRole").value("ATHLETE"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("user.activeRole").value("ATHLETE"));
     }
 
     private UUID createTestAccount(String email, boolean enabled, UserRole... roles) {
         UUID id = UUID.randomUUID();
 
         database.update(
-            "insert into user_account(id, email, password_hash, enabled) values (?, ?, ?, ?)",
-            id,
-            email,
-            passwordEncoder.encode(PASSWORD),
-            enabled
-        );
+                "insert into user_account(id, email, password_hash, enabled) values (?, ?, ?, ?)",
+                id,
+                email,
+                passwordEncoder.encode(PASSWORD),
+                enabled);
 
         for (UserRole role : roles) {
             database.update(
-                "insert into user_roles(user_id, role) values (?, cast(? as user_role))",
-                id,
-                role.name()
-            );
+                    "insert into user_roles(user_id, role) values (?, cast(? as user_role))",
+                    id,
+                    role.name());
         }
 
         return id;
@@ -311,33 +311,34 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
 
     private ResultActions login(String email, String password) throws Exception {
         return mvc.perform(post(AUTH_LOGIN_PATH)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(Map.of("email", email, "password", password))));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("email", email, "password", password))));
     }
 
-    private ResultActions register(String email, String password, String confirmation) throws Exception {
+    private ResultActions register(String email, String password, String confirmation)
+            throws Exception {
         return mvc.perform(post(AUTH_REGISTER_PATH)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(registrationBody(email, password, confirmation))));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(registrationBody(email, password, confirmation))));
     }
 
-    private Map<String, Object> registrationBody(String email, String password, String confirmation) {
+    private Map<String, Object> registrationBody(String email, String password,
+            String confirmation) {
         return new HashMap<>(Map.of(
-            "firstName", "Иван",
-            "lastName", "Иванов",
-            "email", email,
-            "password", password,
-            "passwordConfirmation", confirmation,
-            "role", UserRole.ATHLETE
-        ));
+                "firstName", "Иван",
+                "lastName", "Иванов",
+                "email", email,
+                "password", password,
+                "passwordConfirmation", confirmation,
+                "role", UserRole.ATHLETE));
     }
 
     private int registrationStatus(String email) {
         try {
             return register(email, PASSWORD, PASSWORD)
-                .andReturn()
-                .getResponse()
-                .getStatus();
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
