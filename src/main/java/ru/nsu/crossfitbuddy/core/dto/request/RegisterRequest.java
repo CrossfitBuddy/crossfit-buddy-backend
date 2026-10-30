@@ -23,13 +23,13 @@ public record RegisterRequest(
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password is required.")
-    @Size(min = 14, max = 72, message = "Password must contain between 14 and 72 characters.")
+    @Size(min = 8, max = 30, message = "Password must contain between 8 and 30 characters.")
     @Pattern(regexp = "(?s)(?=.*\\p{L})(?=.*\\p{Nd}).*", message = "Password must contain letters and digits.")
     String password,
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password confirmation is required.")
-    @Size(max = 72, message = "Password confirmation must not exceed 72 characters.")
+    @Size(min = 8, max = 30, message = "Password confirmation must contain between 8 and 30 characters.")
     String passwordConfirmation) {
     public RegisterRequest {
         firstName = firstName == null ? null : firstName.strip();

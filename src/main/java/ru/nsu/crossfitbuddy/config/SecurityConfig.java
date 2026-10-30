@@ -42,9 +42,6 @@ public class SecurityConfig {
     private static final String[] ENDPOINTS_WHITELIST = {
         "/actuator/health",
         "/actuator/health/**",
-        "/api/v1/auth/login",
-        "/api/v1/auth/register",
-        "/api/v1/auth/password/**",
         "/send-email"
     };
 
@@ -71,6 +68,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(request -> request
                 .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
                 .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register",
+                    "/api/v1/auth/password/request", "/api/v1/auth/password/confirm").permitAll()
                 .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
                 .anyRequest().authenticated())
             .build();

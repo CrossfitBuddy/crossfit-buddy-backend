@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 import java.util.UUID;
 
 @Getter
@@ -85,6 +86,11 @@ public class UserAccount {
 
     public Set<UserRole> getRoles() {
         return Collections.unmodifiableSet(roles);
+    }
+
+    public void resetPassword(String passwordHash) {
+        this.passwordHash = Objects.requireNonNull(passwordHash);
+        this.tokenVersion = Math.incrementExact(tokenVersion);
     }
 
     public void selectActiveRole(UserRole role) {

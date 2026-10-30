@@ -263,7 +263,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("code").value("PASSWORD_MISMATCH"));
         register("not-email", PASSWORD, PASSWORD).andExpect(status().isBadRequest());
-        String longUtf8 = "Я".repeat(40) + "123";
+        String longUtf8 = "界".repeat(24) + "123";
         register(generateUniqueEmail(), longUtf8, longUtf8)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("code").value("PASSWORD_TOO_LONG"));
@@ -352,15 +352,21 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void appliesMigrationsAndEnforcesRoleAndRecoveryConstraints() {
         assertThat(database.queryForObject("select count(*) from roles", Integer.class)).isEqualTo(3);
         assertThat(database.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(19);
+            .isEqualTo(20);
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
-                + " expires_at, failed_attempts) values (?, 'hash'," + " now() + interval '15 minutes', 6)", id))
+                + " expires_at, failed_attempts) values (?, 'hash'," + " now() + interval '15 minutes', -1)", id))
             .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
-                + " expires_at) values (?, 'hash', now() + interval '16" + " minutes')", id))
+                + " expires_at) values (?, 'hash', now() - interval '1" + " minute')", id))
+            .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        database.update("insert into password_reset_code(user_id, code_hash, expires_at, failed_attempts) "
+            + "values (?, 'hash', now() + interval '20 minutes', 6)", id);
+        assertThatThrownBy(() -> database.update(
+            "insert into password_reset_code(user_id, code_hash, expires_at) "
+                + "values (?, 'other', now() + interval '20 minutes')", id))
             .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
@@ -373,7 +379,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .defaultSchema(schema)
             .locations("classpath:db/migration")
             .load().migrate();
-        assertThat(result.migrationsExecuted).isEqualTo(19);
+        assertThat(result.migrationsExecuted).isEqualTo(20);
         assertThat(database.queryForObject("select count(*) from " + schema + ".roles", Integer.class))
             .isEqualTo(3);
         assertThat(database.queryForList(
