@@ -9,9 +9,7 @@ public record EquipmentPropertiesRequest(
 
         @NotBlank MetricsValueType metricsValueType,
 
-        @NotBlank @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы") String unit,
-
-        @NotBlank float value
+        @NotBlank @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы") String unit
 
 ) {
 }
