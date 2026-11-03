@@ -10,7 +10,5 @@ public record ExercisesMetricsRequest(
 
         @NotBlank MetricsValueType metricsValueType,
 
-        @NotBlank Float value,
-
         @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы") String unit) {
 }
