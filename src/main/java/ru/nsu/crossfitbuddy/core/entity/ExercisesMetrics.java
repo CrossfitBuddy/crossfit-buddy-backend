@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Entity
 @Setter
-@Table(name = "general_exercises")
+@Table(name = "exercises_metrics")
 public class ExercisesMetrics {
 
     @Id
@@ -32,8 +32,6 @@ public class ExercisesMetrics {
 
     @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы")
     private String unit;
-
-    private Float value;
 
     @ManyToOne
     @JoinColumn
