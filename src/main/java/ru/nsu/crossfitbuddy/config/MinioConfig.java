@@ -13,29 +13,9 @@ public class MinioConfig {
 
     @Bean
     public MinioClient minioClient() {
-        MinioClient client = MinioClient.builder()
+        return MinioClient.builder()
             .endpoint(minioProperties.getUrl())
             .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
             .build();
-
-        try {
-            boolean found = client.bucketExists(
-                io.minio.BucketExistsArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .build()
-            );
-            if (!found) {
-                client.makeBucket(
-                    io.minio.MakeBucketArgs.builder()
-                        .bucket(minioProperties.getBucketName())
-                        .build()
-                );
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize MinIO bucket: "
-                + minioProperties.getBucketName(), e);
-        }
-
-        return client;
     }
 }
