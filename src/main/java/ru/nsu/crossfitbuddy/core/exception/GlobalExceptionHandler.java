@@ -108,6 +108,14 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred.", request);
     }
 
+    @ExceptionHandler(ServiceException.class)
+    ResponseEntity<ErrorResponse> handleDuplicateEquipmentsNameExeption(
+            ServiceException exception,
+            HttpServletRequest request) {
+        return error(exception.getHttpStatus(), "VALIDATION_ERROR", exception.getMessage(),
+                request);
+    }
+
     private static int validationPriority(FieldError fieldError) {
         String code = fieldError.getCode();
         return "NotBlank".equals(code) || "NotNull".equals(code) ? 0 : 1;

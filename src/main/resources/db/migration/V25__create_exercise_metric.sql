@@ -1,0 +1,1 @@
+create table exercise_metric (metrics_value_type varchar(255) not null check (metrics_value_type in ('INTEGER','FLOAT')), id uuid not null, name varchar(255) not null, unit varchar(255), primary key (id));

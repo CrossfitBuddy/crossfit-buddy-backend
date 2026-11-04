@@ -28,6 +28,9 @@ public final class Paths {
     // email (тестовый)
     public static final String EMAIL = "/send-email";
 
-    public static final String GENERAL_EXERCISES = "v1/general_exercises";
+    public static final String GENERAL_EXERCISES = "v1/general-exercises";
     public static final String GENERAL_EXERCISES_SET = "/set";
+    public static final String GENERAL_EXERCISES_GET_EQUIPMENTS = "/get/equipments";
+    public static final String GENERAL_EXERCISES_GET_METRICS = "/get/metrics";
+    public static final String GENERAL_EXERCISES_GET_EXERCISES = "/get/all-exercises";
 }

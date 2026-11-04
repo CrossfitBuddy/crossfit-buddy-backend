@@ -1,0 +1,1 @@
+create table general_exercise (id uuid not null, video_url varchar(500), category varchar(255) not null check (category in ('STRENGTH','CARDIO','GYMNASTICS','WEIGHTLIFTING','OTHER')), description varchar(255) not null, name varchar(255) not null, primary key (id));
