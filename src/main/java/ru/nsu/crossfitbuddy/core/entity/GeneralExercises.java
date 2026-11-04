@@ -11,7 +11,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,7 +21,7 @@ import lombok.Setter;
 @Getter
 @Entity
 @Setter
-@Table(name = "general_exercises")
+@Table(name = "general_exercise")
 public class GeneralExercises {
 
     @Id
@@ -39,7 +41,12 @@ public class GeneralExercises {
     @Column(name = "video_url", length = 500)
     private String videoUrl;
 
-    @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    @JoinTable(name = "exercises_equipments", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_equipment_id"))
+    private List<ExerciseEquipment> exerciseEquipments;
+
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    @JoinTable(name = "exercises_metrics", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_metric_id"))
     private List<ExercisesMetrics> exercisesMetrics;
 
 }
