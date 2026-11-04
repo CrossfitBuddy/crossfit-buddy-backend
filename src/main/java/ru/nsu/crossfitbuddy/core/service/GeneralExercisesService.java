@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ru.nsu.crossfitbuddy.core.dto.request.exercises.ExerciseEquipmentRequest;
@@ -56,10 +57,11 @@ public class GeneralExercisesService {
         exercises.setCategory(request.category());
 
         List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
-            var dbMetricOptional = exerciseMetricRepository.findById(metric.id());
-            if (!dbMetricOptional.isEmpty()) {
-                return dbMetricOptional.get();
+            if (metric.id() != null) {
+                return exerciseMetricRepository.findById(metric.id())
+                        .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
             }
+
             var dbMetric = new ExercisesMetrics();
             dbMetric.setName(metric.name());
             dbMetric.setMetricsValueType(metric.metricsValueType());
@@ -69,10 +71,11 @@ public class GeneralExercisesService {
 
         List<ExerciseEquipment> equipments = request.exercisesEquipments().stream()
                 .map(equipment -> {
-                    var dbEquipmentOptional = exerciseEquipmentRepository
-                            .findById(equipment.id());
-                    if (!dbEquipmentOptional.isEmpty()) {
-                        return dbEquipmentOptional.get();
+                    if (equipment.id() != null) {
+                        return exerciseEquipmentRepository.findById(equipment.id())
+                                .orElseThrow(
+                                        () -> new EntityNotFoundException("Оборудование с id: "
+                                                + equipment.id() + " не найдено"));
                     }
 
                     var dbEquipment = new ExerciseEquipment();
