@@ -22,6 +22,15 @@ public class AvatarService {
     public void replaceCurrentAvatar(CurrentUser currentUser, MultipartFile file) {
         profileService.findProfileOrThrow(currentUser.id(), true);
 
+        if (file.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_FILE",
+                "File must not be empty.");
+        }
+        if (file.getSize() > AvatarValidator.MAX_BYTES) {
+            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
+                "Avatar must not exceed 5 MB.");
+        }
+
         avatarValidator.validate(file);
 
         var existingAvatar = userAvatarRepository.findById(currentUser.id()).orElse(null);
@@ -30,12 +39,12 @@ public class AvatarService {
         String newObjectKey = avatarStorageService.upload(currentUser.id(), file);
 
         if (existingAvatar != null) {
-            existingAvatar.replace(newObjectKey, file.getContentType(), file.getSize());
+            existingAvatar.replace(newObjectKey, file.getContentType(), Long.valueOf(file.getSize()));
             userAvatarRepository.save(existingAvatar);
-
             avatarStorageService.delete(oldObjectKey);
         } else {
-            var newAvatar = UserAvatar.create(currentUser.id(), newObjectKey, file.getContentType(), file.getSize());
+            var newAvatar = UserAvatar.create(currentUser.id(), newObjectKey,
+                file.getContentType(), file.getSize());
             userAvatarRepository.save(newAvatar);
         }
     }
@@ -44,7 +53,8 @@ public class AvatarService {
     public AvatarContent getCurrentAvatar(CurrentUser currentUser) {
         profileService.findProfileOrThrow(currentUser.id(), false);
         var avatar = userAvatarRepository.findById(currentUser.id())
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AVATAR_NOT_FOUND", "Avatar was not found."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                "AVATAR_NOT_FOUND", "Avatar was not found."));
 
         byte[] content = avatarStorageService.download(avatar.getObjectKey());
         return new AvatarContent(avatar.getContentType(), content);
