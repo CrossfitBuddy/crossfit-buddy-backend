@@ -24,7 +24,7 @@ public class TestMailController {
         try {
 
             mailService.sendHtml(
-                    mailCreator.getEmailConfirmMessage(LocalDateTime.now(), "12345",
+                    mailCreator.getPasswordRecoveryMessage(LocalDateTime.now(), "12345",
                             "sdf@sdfs.df"));
         } catch (MessagingException e) {
 
