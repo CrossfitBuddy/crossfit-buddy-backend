@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class Paths {
+public final class Paths {
     // workouts
     public static final String WORKOUTS = "/v1/workouts";
 
@@ -16,4 +16,15 @@ public class Paths {
     public static final String AUTH_ACTIVE_ROLE = "/active-role";
     public static final String AUTH_EMAIL_CONFIRM = "/email/confirm";
     public static final String AUTH_EMAIL_RESEND = "/email/resend";
+    public static final String AUTH_PASSWORD_RECOVERY_REQUEST = "/password/request";
+    public static final String AUTH_PASSWORD_RECOVERY_CONFIRM = "/password/confirm";
+
+    // profile
+    public static final String PROFILE = "/v1/users/me";
+
+    // avatar
+    public static final String AVATAR = "/v1/users/me/avatar";
+
+    // email (тестовый)
+    public static final String EMAIL = "/send-email";
 }

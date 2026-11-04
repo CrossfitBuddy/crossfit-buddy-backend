@@ -19,13 +19,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
-import ru.nsu.crossfitbuddy.core.user.service.AvatarService;
-import ru.nsu.crossfitbuddy.core.user.service.AvatarValidator;
+import ru.nsu.crossfitbuddy.core.service.AvatarService;
+import ru.nsu.crossfitbuddy.core.service.AvatarValidator;
 
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/v1/users/me/avatar")
+@RequestMapping(Paths.AVATAR)
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class AvatarController {

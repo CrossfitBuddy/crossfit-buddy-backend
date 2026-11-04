@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.controller;
+package ru.nsu.crossfitbuddy.integration;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.mail.SMTPMailService;
@@ -54,8 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 @AutoConfigureMockMvc
 class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
-    private static final String REQUEST = "/v1/auth/password/request";
-    private static final String CONFIRM = "/v1/auth/password/confirm";
+    private static final String REQUEST_PATH = Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST;
+    private static final String CONFIRM_PATH = Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM;
     private static final String OLD_PASSWORD = "OldStrongPassword123";
     private static final String NEW_PASSWORD = "New1!abc";
     private static final GreenMail SMTP = new GreenMail(new ServerSetup(0, "127.0.0.1", "smtp"));
@@ -318,7 +319,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("code").value(error))
             .andExpect(jsonPath("timestamp").isNotEmpty())
             .andExpect(jsonPath("message").isNotEmpty())
-            .andExpect(jsonPath("path").value(CONFIRM));
+            .andExpect(jsonPath("path").value(CONFIRM_PATH));
 
         assertThat(failedAttempts(user.id())).isZero();
         assertThat(encoder.matches(OLD_PASSWORD,
@@ -340,13 +341,13 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
     @Test
     @DisplayName("Проверка запросов восстановления")
     void validatesPublicRequests() throws Exception {
-        mvc.perform(post(REQUEST).contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"invalid\"}"))
+        mvc.perform(post(REQUEST_PATH).contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"invalid\"}"))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("VALIDATION_ERROR"));
 
         String email = UUID.randomUUID() + "@example.com";
         var user = createTestAccount(email);
 
-        mvc.perform(post(REQUEST).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
+        mvc.perform(post(REQUEST_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("email", user.email()))))
             .andExpect(status().isOk());
 
@@ -355,7 +356,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
             confirm(user.email(), invalid, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isBadRequest());
         }
 
-        mvc.perform(post(CONFIRM).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
+        mvc.perform(post(CONFIRM_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
                     "email", user.email(), "code", code, "password", NEW_PASSWORD,
                     "passwordConfirmation", NEW_PASSWORD))))
@@ -410,18 +411,18 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
     }
 
     private ResultActions requestCode(String email) throws Exception {
-        return mvc.perform(post(REQUEST).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post(REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
             .content(json.writeValueAsString(Map.of("email", email))));
     }
 
     private ResultActions confirm(String email, String code, String password, String confirmation) throws Exception {
-        return mvc.perform(post(CONFIRM).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post(CONFIRM_PATH).contentType(MediaType.APPLICATION_JSON)
             .content(json.writeValueAsString(Map.of("email", email, "code", code, "password", password,
                 "passwordConfirmation", confirmation))));
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mvc.perform(post("/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post(Paths.AUTH + Paths.AUTH_LOGIN).contentType(MediaType.APPLICATION_JSON)
             .content(json.writeValueAsString(Map.of("email", email, "password", password))));
     }
 

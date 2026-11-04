@@ -17,12 +17,12 @@ import ru.nsu.crossfitbuddy.core.dto.response.MessageResponse;
 import ru.nsu.crossfitbuddy.core.service.PasswordRecoveryService;
 
 @RestController
-@RequestMapping(Paths.AUTH + "/password")
+@RequestMapping(Paths.AUTH)
 @RequiredArgsConstructor
 public class PasswordRecoveryController {
     private final PasswordRecoveryService passwordRecoveryService;
 
-    @PostMapping("/request")
+    @PostMapping(Paths.AUTH_PASSWORD_RECOVERY_REQUEST)
     public ResponseEntity<MessageResponse> request(@Valid @RequestBody PasswordResetRequest request) {
         passwordRecoveryService.requestCode(request.email());
         return ResponseEntity.ok()
@@ -30,12 +30,11 @@ public class PasswordRecoveryController {
             .body(new MessageResponse("Код восстановления отправлен на указанный email"));
     }
 
-    @PostMapping("/confirm")
+    @PostMapping(Paths.AUTH_PASSWORD_RECOVERY_CONFIRM)
     public ResponseEntity<MessageResponse> confirm(@Valid @RequestBody PasswordResetConfirmation request) {
         passwordRecoveryService.resetPassword(request);
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())
             .body(new MessageResponse("Пароль успешно изменен. Вы можете войти в систему с новым паролем"));
     }
-
 }

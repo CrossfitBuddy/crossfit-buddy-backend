@@ -12,6 +12,8 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import ru.nsu.crossfitbuddy.core.controller.InfraPaths;
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
 import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
@@ -35,29 +39,29 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] ENDPOINTS_INFRASTRUCTURE = {
-        "/actuator/health",
-        "/actuator/health/**"
+        InfraPaths.ACTUATOR_HEALTH,
+        InfraPaths.ACTUATOR_HEALTH + "/**"
     };
 
     private static final String[] ENDPOINTS_SWAGGER = {
-        "/swagger-ui.html",
-        "/swagger-ui/**",
-        "/swagger-resources",
-        "/swagger-resources/**",
-        "/v3/api-docs/**"
+        InfraPaths.SWAGGER_UI_HTML,
+        InfraPaths.SWAGGER_UI + "/**",
+        InfraPaths.SWAGGER_RESOURCES,
+        InfraPaths.SWAGGER_RESOURCES + "/**",
+        InfraPaths.V3_API_DOCS + "/**"
     };
 
     private static final String[] ENDPOINTS_WHITELIST = {
-        "/send-email"
+        Paths.EMAIL
     };
 
     private static final String[] ENDPOINTS_PUBLIC_AUTH = {
-        "/v1/auth/login",
-        "/v1/auth/register",
-        "/v1/auth/email/confirm",
-        "/v1/auth/email/resend",
-        "/v1/auth/password/request",
-        "/v1/auth/password/confirm"
+        Paths.AUTH + Paths.AUTH_LOGIN,
+        Paths.AUTH + Paths.AUTH_REGISTER,
+        Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
+        Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
+        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
+        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM
     };
 
     @Bean
@@ -67,13 +71,13 @@ public class SecurityConfig {
         SecurityErrorHandler errors
     ) throws Exception {
         return http
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .requestCache(cache -> cache.disable())
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .logout(logout -> logout.disable())
+            .requestCache(RequestCacheConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .logout(AbstractHttpConfigurer::disable)
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(errors)
                 .accessDeniedHandler(errors)

@@ -17,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import ru.nsu.crossfitbuddy.core.controller.InfraPaths;
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
@@ -38,12 +40,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecurityErrorHandler securityErrorHandler;
 
     private static final Set<String> PUBLIC_POST_PATHS = Set.of(
-        "/v1/auth/login",
-        "/v1/auth/register",
-        "/v1/auth/email/confirm",
-        "/v1/auth/email/resend",
-        "/v1/auth/password/request",
-        "/v1/auth/password/confirm"
+        Paths.AUTH + Paths.AUTH_LOGIN,
+        Paths.AUTH + Paths.AUTH_REGISTER,
+        Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
+        Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
+        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
+        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM
     );
 
     @Override
@@ -51,11 +53,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
         return "OPTIONS".equals(request.getMethod())
-            || path.equals("/actuator/health")
-            || path.startsWith("/actuator/health/")
-            || path.equals("/swagger-ui.html")
-            || path.startsWith("/swagger-ui/")
-            || path.startsWith("/v3/api-docs")
+            || path.equals(InfraPaths.ACTUATOR_HEALTH)
+            || path.startsWith(InfraPaths.ACTUATOR_HEALTH + "/")
+            || path.equals(InfraPaths.SWAGGER_UI_HTML)
+            || path.startsWith(InfraPaths.SWAGGER_UI + "/")
+            || path.startsWith(InfraPaths.V3_API_DOCS)
             || ("POST".equals(request.getMethod()) && PUBLIC_POST_PATHS.contains(path));
     }
 

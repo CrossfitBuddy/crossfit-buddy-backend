@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user.service;
+package ru.nsu.crossfitbuddy.core.service;
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
