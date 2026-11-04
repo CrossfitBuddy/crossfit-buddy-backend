@@ -5,20 +5,7 @@
 ## Локальное развертывание
 
 ### Переменные окружения
-Создать файл .env в корне проекта со следующим содержимым:
-
-```properties
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=postgres
-
-APP_PORT=8080
-APP_ENV=dev
-JWT_SECRET=local-development-secret-change-before-deploy
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-```
+Создать файл .env в корне проекта (список полей в файле `.env.example`)
 
 ### Запуск
 

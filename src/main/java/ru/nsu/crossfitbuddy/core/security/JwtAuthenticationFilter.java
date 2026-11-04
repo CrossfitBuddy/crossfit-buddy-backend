@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.auth.security;
+package ru.nsu.crossfitbuddy.core.security;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -25,6 +25,8 @@ import ru.nsu.crossfitbuddy.core.service.JwtService;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
+
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 
 @Slf4j
@@ -35,14 +37,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserAccountRepository userAccountRepository;
     private final SecurityErrorHandler securityErrorHandler;
 
+    private static final Set<String> PUBLIC_POST_PATHS = Set.of(
+        "/v1/auth/login",
+        "/v1/auth/register",
+        "/v1/auth/email/confirm",
+        "/v1/auth/email/resend",
+        "/v1/auth/password/request",
+        "/v1/auth/password/confirm"
+    );
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return "OPTIONS".equals(request.getMethod()) || path.equals("/actuator/health") || path
-            .startsWith("/actuator/health/") || path.equals("/swagger-ui.html") || path.startsWith("/swagger-ui/")
-            || path.startsWith("/v3/api-docs") || ("POST".equals(request.getMethod()) && (path
-                .equals("/api/v1/auth/login") || path.equals("/api/v1/auth/register")
-                || path.equals("/api/v1/auth/password/request") || path.equals("/api/v1/auth/password/confirm")));
+
+        return "OPTIONS".equals(request.getMethod())
+            || path.equals("/actuator/health")
+            || path.startsWith("/actuator/health/")
+            || path.equals("/swagger-ui.html")
+            || path.startsWith("/swagger-ui/")
+            || path.startsWith("/v3/api-docs")
+            || ("POST".equals(request.getMethod()) && PUBLIC_POST_PATHS.contains(path));
     }
 
     private static final String BEARER_PREFIX = "Bearer ";
