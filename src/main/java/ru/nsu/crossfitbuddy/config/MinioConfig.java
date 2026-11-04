@@ -1,39 +1,39 @@
 package ru.nsu.crossfitbuddy.config;
 
 import io.minio.MinioClient;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
 public class MinioConfig {
 
-    @Value("${app.minio.url}")
-    private String url;
-
-    @Value("${app.minio.access-key}")
-    private String accessKey;
-
-    @Value("${app.minio.secret-key}")
-    private String secretKey;
-
-    @Value("${app.minio.bucket-name}")
-    private String bucketName;
+    private final MinioProperties minioProperties;
 
     @Bean
     public MinioClient minioClient() {
         MinioClient client = MinioClient.builder()
-            .endpoint(url)
-            .credentials(accessKey, secretKey)
+            .endpoint(minioProperties.getUrl())
+            .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
             .build();
 
         try {
-            boolean found = client.bucketExists(io.minio.BucketExistsArgs.builder().bucket(bucketName).build());
+            boolean found = client.bucketExists(
+                io.minio.BucketExistsArgs.builder()
+                    .bucket(minioProperties.getBucketName())
+                    .build()
+            );
             if (!found) {
-                client.makeBucket(io.minio.MakeBucketArgs.builder().bucket(bucketName).build());
+                client.makeBucket(
+                    io.minio.MakeBucketArgs.builder()
+                        .bucket(minioProperties.getBucketName())
+                        .build()
+                );
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize MinIO bucket: " + bucketName, e);
+            throw new RuntimeException("Failed to initialize MinIO bucket: "
+                + minioProperties.getBucketName(), e);
         }
 
         return client;
