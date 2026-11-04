@@ -52,7 +52,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     @Autowired
     ObjectMapper json;
 
-    private static final String URL = "/api/v1/users/me";
+    private static final String URL = "/v1/users/me";
 
     @Test
     @DisplayName("Получение профиля со всеми ролями")

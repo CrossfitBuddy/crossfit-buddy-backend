@@ -5,11 +5,10 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Paths {
-    public static final String USER = "/v1/users";
-    public static final String USER_BY_ID = "/{id}";
-
+    // workouts
     public static final String WORKOUTS = "/v1/workouts";
 
+    // auth
     public static final String AUTH = "/v1/auth";
     public static final String AUTH_LOGIN = "/login";
     public static final String AUTH_REGISTER = "/register";

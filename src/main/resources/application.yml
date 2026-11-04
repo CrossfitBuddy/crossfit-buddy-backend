@@ -65,12 +65,14 @@ management:
       probes:
         enabled: true
 
+
 app:
-  frontend-url: ${FRONTEND_URL}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+    email-confirmation-path: ${EMAIL_CONFIRMATION_PATH:/auth/email-confirmation}
   password-recovery:
     code-ttl: ${PASSWORD_RECOVERY_CODE_TTL:15m}
     max-attempts: ${PASSWORD_RECOVERY_MAX_ATTEMPTS:5}
-  security-enabled: true
   jwt:
     secret: ${JWT_SECRET:}
     issuer: ${JWT_ISSUER:crossfitbuddy}

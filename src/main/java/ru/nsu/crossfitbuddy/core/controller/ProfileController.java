@@ -21,7 +21,7 @@ import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.user.service.ProfileService;
 
 @RestController
-@RequestMapping("/api/v1/users/me")
+@RequestMapping("/v1/users/me")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class ProfileController {

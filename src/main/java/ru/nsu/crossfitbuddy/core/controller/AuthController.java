@@ -65,7 +65,7 @@ public class AuthController {
     }
 
     @PostMapping(Paths.AUTH_EMAIL_CONFIRM)
-    public ResponseEntity<Void> confirm(@RequestBody EmailConfirmRequest request) {
+    public ResponseEntity<Void> confirm(@Valid @RequestBody EmailConfirmRequest request) {
         try {
             tokenService.confirmEmail(request.token());
             return ResponseEntity.ok().build();
@@ -76,7 +76,7 @@ public class AuthController {
     }
 
     @PostMapping(Paths.AUTH_EMAIL_RESEND)
-    public ResponseEntity<Void> resend(@RequestBody EmailResendRequest request) {
+    public ResponseEntity<Void> resend(@Valid @RequestBody EmailResendRequest request) {
         try {
             tokenService.resendEmail(request.email());
             return ResponseEntity.ok().build();

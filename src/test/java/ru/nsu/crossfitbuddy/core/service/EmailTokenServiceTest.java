@@ -41,7 +41,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EmailTokenServiceTest {
 
-    private static final String FRONTEND_URL = "http://localhost:5173";
+    private static final String FRONTEND_BASE_URL = "http://localhost:5173";
+    private static final String EMAIL_CONFIRMATION_PATH = "/auth/email-confirmation";
     private static final String CONFIRM_SUBJECT = "Подтверждение регистрации";
 
     @Mock
@@ -58,7 +59,8 @@ class EmailTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "frontendUrl", FRONTEND_URL);
+        ReflectionTestUtils.setField(service, "frontendBaseUrl", FRONTEND_BASE_URL);
+        ReflectionTestUtils.setField(service, "emailConfirmationPath", EMAIL_CONFIRMATION_PATH);
     }
 
     @AfterEach
@@ -108,7 +110,7 @@ class EmailTokenServiceTest {
         assertThat(savedToken.getUsedAt()).isNull();
         assertThat(savedToken.getExpiresAt()).isAfter(Instant.now());
 
-        assertThat(link).startsWith(FRONTEND_URL + "/auth/email-confirmation?token=");
+        assertThat(link).startsWith(FRONTEND_BASE_URL + "/auth/email-confirmation?token=");
 
         String rawToken = extractTokenFromLink(link);
         assertThat(hashToken(rawToken)).isEqualTo(savedToken.getTokenHash());
@@ -269,7 +271,7 @@ class EmailTokenServiceTest {
         assertThat(savedToken.getUsedAt()).isNull();
         assertThat(savedToken.getExpiresAt()).isAfter(Instant.now());
 
-        assertThat(link).startsWith(FRONTEND_URL + "/auth/email-confirmation?token=");
+        assertThat(link).startsWith(FRONTEND_BASE_URL + "/auth/email-confirmation?token=");
 
         String rawToken = extractTokenFromLink(link);
         assertThat(hashToken(rawToken)).isEqualTo(savedToken.getTokenHash());

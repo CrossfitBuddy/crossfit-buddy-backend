@@ -25,7 +25,7 @@ import ru.nsu.crossfitbuddy.core.user.service.AvatarValidator;
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/v1/users/me/avatar")
+@RequestMapping("/v1/users/me/avatar")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class AvatarController {

@@ -24,16 +24,17 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class EmailTokenService {
-    private static final String FRONTEND_EMAIL_ROUTE = "/auth/email-confirmation";
-
     private final EmailTokenRepository tokenRepository;
 
     private final UserAccountRepository userAccountRepository;
 
     private final MailService mailService;
 
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
+
+    @Value("${app.frontend.email-confirmation-path}")
+    private String emailConfirmationPath;
 
     @Transactional
     public void sendConfirmationEmail(UserAccount userAccount) {
@@ -87,14 +88,14 @@ public class EmailTokenService {
 
     @Transactional
     public void resendEmail(String email) {
-        UserAccount user = userAccountRepository.findByEmail(email)
+        UserAccount user = userAccountRepository.findByEmail(AccountDetailsService.normalizeEmail(email))
             .orElseThrow(() -> createApiException(HttpStatus.NOT_FOUND));
 
         sendConfirmationEmail(user);
     }
 
     private String generateConfirmationLink(String token) {
-        return frontendUrl + FRONTEND_EMAIL_ROUTE + "?token=" + token;
+        return frontendBaseUrl + emailConfirmationPath + "?token=" + token;
     }
 
     private String hashToken(String token) {

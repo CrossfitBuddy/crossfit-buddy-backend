@@ -21,9 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import ru.nsu.crossfitbuddy.auth.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.entity.JwtProperties;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
+import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
 
 import java.time.Clock;
@@ -39,12 +39,6 @@ public class SecurityConfig {
         "/actuator/health/**"
     };
 
-    private static final String[] ENDPOINTS_WHITELIST = {
-        "/actuator/health",
-        "/actuator/health/**",
-        "/send-email"
-    };
-
     private static final String[] ENDPOINTS_SWAGGER = {
         "/swagger-ui.html",
         "/swagger-ui/**",
@@ -53,25 +47,45 @@ public class SecurityConfig {
         "/v3/api-docs/**"
     };
 
+    private static final String[] ENDPOINTS_WHITELIST = {
+        "/send-email"
+    };
+
+    private static final String[] ENDPOINTS_PUBLIC_AUTH = {
+        "/v1/auth/login",
+        "/v1/auth/register",
+        "/v1/auth/email/confirm",
+        "/v1/auth/email/resend",
+        "/v1/auth/password/request",
+        "/v1/auth/password/confirm"
+    };
+
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
-        SecurityErrorHandler errors) throws Exception {
-        return http.csrf(csrf -> csrf.disable())
+    SecurityFilterChain securityFilterChain(
+        HttpSecurity http,
+        JwtAuthenticationFilter jwtFilter,
+        SecurityErrorHandler errors
+    ) throws Exception {
+        return http
+            .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .requestCache(cache -> cache.disable())
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable())
             .logout(logout -> logout.disable())
-            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(errors)
+                .accessDeniedHandler(errors)
+            )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(request -> request
                 .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
                 .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register",
-                    "/api/v1/auth/password/request", "/api/v1/auth/password/confirm").permitAll()
+                .requestMatchers(HttpMethod.POST, ENDPOINTS_PUBLIC_AUTH).permitAll()
                 .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
-                .anyRequest().authenticated())
+                .anyRequest().authenticated()
+            )
             .build();
     }
 
@@ -81,7 +95,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AccountDetailsService accounts, PasswordEncoder encoder) {
+    AuthenticationManager authenticationManager(
+        AccountDetailsService accounts,
+        PasswordEncoder encoder
+    ) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(accounts);
         provider.setPasswordEncoder(encoder);
         provider.setPreAuthenticationChecks(details -> {});
@@ -102,12 +119,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
+    CorsConfigurationSource corsConfigurationSource(
+        @Value("${app.cors.allowed-origins}") List<String> allowedOrigins
+    ) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(false);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

@@ -91,7 +91,7 @@ public class ProfileService {
         return new ProfileResponse(account.getId(), account.getEmail(), account.getRoles(),
             profile.getFirstName(), profile.getLastName(), profile.getDisplayName(), profile.getBirthDate(),
             profile.getGender(), profile.getCity(), profile.getAbout(),
-            userAvatarRepository.existsById(profile.getId()) ? "/api/v1/users/me/avatar" : null,
+            userAvatarRepository.existsById(profile.getId()) ? "/v1/users/me/avatar" : null,
             extractInitial(profile.getFirstName()) + extractInitial(profile.getLastName()), athlete, trainer);
     }
 

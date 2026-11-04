@@ -43,7 +43,12 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
     @Test
     void usesConfiguredTtlAndAttemptLimit() throws Exception {
         String email = UUID.randomUUID() + "@example.com";
-        var account = accounts.save(UserAccount.builder().email(email).passwordHash("old-hash").build());
+        var account = accounts.save(UserAccount.builder()
+            .email(email)
+            .passwordHash("old-hash")
+            .enabled(true)
+            .build()
+        );
         var delivered = new StringBuilder();
         doAnswer(invocation -> {
             delivered.append(invocation.getArgument(2, String.class));

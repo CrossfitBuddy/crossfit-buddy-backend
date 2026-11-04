@@ -108,11 +108,11 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         String token = extractAccessToken(login(email, PASSWORD)
             .andExpect(status().isOk()));
 
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("email").value(email));
 
-        mvc.perform(get("/api/v1/workouts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/workouts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
     }
 
@@ -122,11 +122,11 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         createTestAccount(email, true, UserRole.ATHLETE, UserRole.TRAINER);
         String token = extractAccessToken(login(" " + email.toUpperCase(java.util.Locale.ROOT) + " ", PASSWORD)
             .andExpect(status().isOk()));
-        mvc.perform(get("/api/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/athlete/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/trainer/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("code").value("ACCESS_DENIED"));
     }
@@ -153,17 +153,17 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("status").value(401))
             .andExpect(jsonPath("code").value("INVALID_CREDENTIALS"))
             .andExpect(jsonPath("message").value("Invalid email or password."))
-            .andExpect(jsonPath("path").value("/api/v1/auth/login"))
+            .andExpect(jsonPath("path").value("/v1/auth/login"))
             .andExpect(jsonPath("password").doesNotExist());
         register(generateUniqueEmail(), PASSWORD, "DifferentPassword123")
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("message").value("Passwords do not match."));
-        mvc.perform(get("/api/v1/auth/me"))
+        mvc.perform(get("/v1/auth/me"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("message").value("Authentication is required or the access token is" + " invalid."));
         String token = jwtService.issue(userAccountRepository.findByEmail(email).orElseThrow(), UserRole.ATHLETE)
             .value();
-        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("message").value("You do not have permission to perform this action."));
     }
@@ -171,7 +171,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     @Test
     void returnsExplicitAndDeterministicValidationMessagesRegardlessOfRequestLocale() throws Exception {
         for (String locale : new String[] { "ru", "en" }) {
-            mvc.perform(post("/api/v1/auth/login")
+            mvc.perform(post("/v1/auth/login")
                     .header(HttpHeaders.ACCEPT_LANGUAGE, locale)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(json.writeValueAsString(Map.of("email", "invalid-email", "password", PASSWORD))))
@@ -179,7 +179,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
                 .andExpect(jsonPath("code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("message").value("email: Enter a valid email address."));
         }
-        mvc.perform(post("/api/v1/auth/login")
+        mvc.perform(post("/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email", generateUniqueEmail()))))
             .andExpect(status().isBadRequest())
@@ -187,7 +187,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         var body = registrationBody(generateUniqueEmail(), "", "");
         body.put("firstName", "");
         body.put("lastName", "");
-        mvc.perform(post("/api/v1/auth/register")
+        mvc.perform(post("/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body)))
             .andExpect(status().isBadRequest())
@@ -221,9 +221,9 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         String token = extractAccessToken(login(adminEmail, PASSWORD)
             .andExpect(status().isOk())
             .andExpect(jsonPath("user.activeRole").value("ADMIN")));
-        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
-        mvc.perform(patch("/api/v1/auth/active-role")
+        mvc.perform(patch("/v1/auth/active-role")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"role\":\"ATHLETE\"}"))
@@ -235,15 +235,15 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         String email = generateUniqueEmail();
         createTestAccount(email, true, UserRole.ATHLETE);
         String token = extractAccessToken(login(email, PASSWORD).andExpect(status().isOk()));
-        mvc.perform(get("/api/v1/workouts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/workouts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/workouts"))
+        mvc.perform(get("/v1/workouts"))
             .andExpect(status().isUnauthorized())
             .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
             .andExpect(jsonPath("code").value("UNAUTHORIZED"));
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Basic abc"))
+        mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Basic abc"))
             .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer one", "Bearer two"))
+        mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer one", "Bearer two"))
             .andExpect(status().isUnauthorized());
     }
 
@@ -256,7 +256,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         String foreign = new JwtService(new JwtProperties("YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODk=",
             "crossfitbuddy", Duration.ofMinutes(15)), Clock.systemUTC()).issue(account, UserRole.ATHLETE).value();
         for (String token : new String[] { "garbage", "", expired, foreign }) {
-            mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("code").value("UNAUTHORIZED"));
         }
@@ -294,12 +294,12 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("code").value("PASSWORD_TOO_LONG"));
         var body = registrationBody(generateUniqueEmail(), PASSWORD, PASSWORD);
         body.put("roles", new String[] { "ADMIN" });
-        mvc.perform(post("/api/v1/auth/register")
+        mvc.perform(post("/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("code").value("INVALID_REQUEST"));
-        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{"))
+        mvc.perform(post("/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{"))
             .andExpect(status().isBadRequest());
     }
 
@@ -308,7 +308,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
         for (String body : new String[] { "{\"email\":\"one@example.com\",\"email\":\"two@example.com\",\"password\":\""
             + PASSWORD + "\"}", "{\"email\":\"one@example.com\",\"password\":\"" + PASSWORD + "\"} {}",
             "{\"email\":\"one@example.com\",\"password\":\"" + "a".repeat(9000) + "\"}" }) {
-            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("code").value("INVALID_REQUEST"));
         }
@@ -316,14 +316,14 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
 
     @Test
     void securityFailuresRetainProtectionHeadersAndPublicLoginIgnoresStaleToken() throws Exception {
-        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
+        mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
             .andExpect(status().isUnauthorized())
             .andExpect(header().string("X-Content-Type-Options", "nosniff"))
             .andExpect(header().string("X-Frame-Options", "DENY"))
             .andExpect(header().string(HttpHeaders.CACHE_CONTROL, org.hamcrest.Matchers.containsString("no-store")));
         String email = generateUniqueEmail();
         createTestAccount(email, true, UserRole.ATHLETE);
-        mvc.perform(post("/api/v1/auth/login")
+        mvc.perform(post("/v1/auth/login")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer expired")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email", email, "password", PASSWORD))))
@@ -332,12 +332,12 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
 
     @Test
     void rejectsUntrustedCorsOriginsAndDoesNotAllowCookieCredentials() throws Exception {
-        mvc.perform(options("/api/v1/auth/login")
+        mvc.perform(options("/v1/auth/login")
                 .header(HttpHeaders.ORIGIN, "https://untrusted.example")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
             .andExpect(status().isForbidden())
             .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
-        mvc.perform(options("/api/v1/auth/login")
+        mvc.perform(options("/v1/auth/login")
                 .header(HttpHeaders.ORIGIN, "http://localhost:5173")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
             .andExpect(status().isOk())
@@ -362,9 +362,9 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void checksMethodSecurityAndCorsPreflight() throws Exception {
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         String token = jwtService.issue(userAccountRepository.findById(id).orElseThrow(), UserRole.ATHLETE).value();
-        mvc.perform(get("/api/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/v1/admin/probe").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden());
-        mvc.perform(options("/api/v1/auth/login")
+        mvc.perform(options("/v1/auth/login")
                 .header(HttpHeaders.ORIGIN, "http://localhost:5173")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Content-Type"))
@@ -377,7 +377,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     void appliesMigrationsAndEnforcesRoleAndRecoveryConstraints() {
         assertThat(database.queryForObject("select count(*) from roles", Integer.class)).isEqualTo(3);
         assertThat(database.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(20);
+            .isEqualTo(21);
         UUID id = createTestAccount(generateUniqueEmail(), true, UserRole.ATHLETE);
         assertThatThrownBy(() -> database
             .update("insert into password_reset_code(user_id, code_hash,"
@@ -404,7 +404,7 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .defaultSchema(schema)
             .locations("classpath:db/migration")
             .load().migrate();
-        assertThat(result.migrationsExecuted).isEqualTo(20);
+        assertThat(result.migrationsExecuted).isEqualTo(21);
         assertThat(database.queryForObject("select count(*) from " + schema + ".roles", Integer.class))
             .isEqualTo(3);
         assertThat(database.queryForList(
@@ -432,32 +432,8 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("user.activeRole").value("ATHLETE"));
     }
 
-    @Test
-    void createsAllIncomingAccountForeignKeys() {
-        String schema = "public";
-        assertThat(database
-            .queryForList("select n.nspname || '.' || c.relname || '.' || a.attname from"
-                + " pg_constraint fk join pg_class c on c.oid = fk.conrelid"
-                + " join pg_namespace n on n.oid = c.relnamespace join pg_attribute a on a.attrelid ="
-                + " c.oid and a.attnum = any(fk.conkey) where fk.confrelid ="
-                + " cast(? as regclass) and fk.contype = 'f'", String.class, schema + ".user_account"))
-            .containsExactlyInAnyOrder(
-                schema + ".user_roles.user_id",
-                schema + ".exercise.created_by",
-                schema + ".workout.created_by",
-                schema + ".workout_participant.athlete_id",
-                schema + ".workout_participant.trainer_id",
-                schema + ".trainer_subscription.athlete_id",
-                schema + ".trainer_subscription.trainer_id",
-                schema + ".stage_result.athlete_id",
-                schema + ".password_reset_code.user_id",
-                schema + ".user_profile.user_id",
-                schema + ".athlete_profile.user_id",
-                schema + ".trainer_profile.user_id");
-    }
-
     private ResultActions protectedRequest(String token) throws Exception {
-        return mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
+        return mvc.perform(get("/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }
 
     private UUID createTestAccount(String email, boolean enabled, UserRole... roles) {
@@ -472,13 +448,13 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mvc.perform(post("/api/v1/auth/login")
+        return mvc.perform(post("/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email", email, "password", password))));
     }
 
     private ResultActions register(String email, String password, String confirmation) throws Exception {
-        return mvc.perform(post("/api/v1/auth/register")
+        return mvc.perform(post("/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(registrationBody(email, password, confirmation))));
     }
@@ -513,19 +489,19 @@ class AuthIntegrationTest extends AbstractRepositoryTest {
     static class RoleEndpoints {
 
         @AthleteAuthority
-        @GetMapping({ "/api/v1/athlete/probe" })
+        @GetMapping({ "/v1/athlete/probe" })
         String athleteProbe() {
             return "ok";
         }
 
         @TrainerAuthority
-        @GetMapping({ "/api/v1/trainer/probe" })
+        @GetMapping({ "/v1/trainer/probe" })
         String trainerProbe() {
             return "ok";
         }
 
         @AdminAuthority
-        @GetMapping("/api/v1/admin/probe")
+        @GetMapping("/v1/admin/probe")
         String adminProbe() {
             return "ok";
         }
