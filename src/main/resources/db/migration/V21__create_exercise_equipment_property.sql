@@ -1,0 +1,1 @@
+create table exercise_equipment_property (metrics_value_type varchar(255) not null check (metrics_value_type in ('INTEGER','FLOAT')), exercise_equipment_id uuid, id uuid not null, name varchar(255) not null, unit varchar(255), primary key (id));

@@ -4,6 +4,8 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -17,7 +19,7 @@ import lombok.Setter;
 @Getter
 @Entity
 @Setter
-@Table(name = "exercise_equipment_properties")
+@Table(name = "exercise_equipment_property")
 public class ExerciseEquipmentProperties {
 
     @Id
@@ -27,6 +29,7 @@ public class ExerciseEquipmentProperties {
     @Column(nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MetricsValueType metricsValueType;
 
