@@ -1,4 +1,8 @@
+<<<<<<< HEAD:src/test/java/ru/nsu/crossfitbuddy/core/service/AvatarStorageServiceIntegrationTest.java
 package ru.nsu.crossfitbuddy.core.service;
+=======
+package ru.nsu.crossfitbuddy.core.user.service;
+>>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара):src/test/java/ru/nsu/crossfitbuddy/core/user/service/AvatarStorageServiceIntegrationTest.java
 
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
@@ -7,8 +11,13 @@ import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+<<<<<<< HEAD:src/test/java/ru/nsu/crossfitbuddy/core/service/AvatarStorageServiceIntegrationTest.java
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+=======
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockMultipartFile;
+>>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара):src/test/java/ru/nsu/crossfitbuddy/core/user/service/AvatarStorageServiceIntegrationTest.java
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 
 import java.util.UUID;
@@ -23,7 +32,11 @@ class AvatarStorageServiceIntegrationTest extends AbstractRepositoryTest {
     @Autowired
     private AvatarStorageService avatarStorageService;
 
+<<<<<<< HEAD:src/test/java/ru/nsu/crossfitbuddy/core/service/AvatarStorageServiceIntegrationTest.java
     @MockitoBean
+=======
+    @MockBean
+>>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара):src/test/java/ru/nsu/crossfitbuddy/core/user/service/AvatarStorageServiceIntegrationTest.java
     private MinioClient minioClient;
 
     @Test

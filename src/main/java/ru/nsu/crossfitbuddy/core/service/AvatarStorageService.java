@@ -1,4 +1,8 @@
+<<<<<<< HEAD:src/main/java/ru/nsu/crossfitbuddy/core/service/AvatarStorageService.java
 package ru.nsu.crossfitbuddy.core.service;
+=======
+package ru.nsu.crossfitbuddy.core.user.service;
+>>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара):src/main/java/ru/nsu/crossfitbuddy/core/user/service/AvatarStorageService.java
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
