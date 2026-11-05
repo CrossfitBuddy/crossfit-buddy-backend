@@ -2,10 +2,13 @@ package ru.nsu.crossfitbuddy.core.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import ru.nsu.crossfitbuddy.core.entity.UserRole;
 
 public record RegisterRequest(
     @NotBlank(message = "First name is required.")
@@ -30,11 +33,20 @@ public record RegisterRequest(
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password confirmation is required.")
     @Size(min = 8, max = 30, message = "Password confirmation must contain between 8 and 30 characters.")
-    String passwordConfirmation) {
+    String passwordConfirmation,
+
+    @NotNull(message = "Role is required.")
+    UserRole role
+) {
     public RegisterRequest {
         firstName = firstName == null ? null : firstName.strip();
         lastName = lastName == null ? null : lastName.strip();
         email = email == null ? null : email.strip();
+    }
+
+    @AssertTrue(message = "ADMIN role is not allowed.")
+    public boolean isRoleValid() {
+        return role == null || role != UserRole.ADMIN;
     }
 
     @Override

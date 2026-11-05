@@ -328,7 +328,8 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
             "lastName", "Иванов",
             "email", email,
             "password", password,
-            "passwordConfirmation", confirmation
+            "passwordConfirmation", confirmation,
+            "role", UserRole.ATHLETE
         ));
     }
 

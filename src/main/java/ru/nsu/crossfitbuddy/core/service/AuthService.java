@@ -19,12 +19,14 @@ import ru.nsu.crossfitbuddy.core.dto.request.RegisterRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.RegisterResponse;
 import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
 import ru.nsu.crossfitbuddy.core.entity.AthleteProfile;
+import ru.nsu.crossfitbuddy.core.entity.TrainerProfile;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.entity.UserProfile;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.repository.AthleteProfileRepository;
+import ru.nsu.crossfitbuddy.core.repository.TrainerProfileRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserProfileRepository;
 
@@ -41,6 +43,7 @@ public class AuthService {
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
     private final AthleteProfileRepository athleteProfileRepository;
+    private final TrainerProfileRepository trainerProfileRepository;
     private final JwtService jwtService;
     private final EmailTokenService emailTokenService;
 
@@ -75,8 +78,8 @@ public class AuthService {
         var account = UserAccount.builder()
             .email(email)
             .passwordHash(passwordEncoder.encode(request.password()))
-            .roles(new HashSet<>(Set.of(UserRole.ATHLETE)))
-            .activeRole(UserRole.ATHLETE)
+            .roles(new HashSet<>(Set.of(request.role())))
+            .activeRole(request.role())
             .enabled(false)
             .build();
 
@@ -92,7 +95,12 @@ public class AuthService {
         }
 
         userProfileRepository.save(UserProfile.create(account, firstName, lastName));
-        athleteProfileRepository.save(AthleteProfile.create(account));
+
+        switch (request.role()) {
+            case ATHLETE -> athleteProfileRepository.save(AthleteProfile.create(account));
+            case TRAINER -> trainerProfileRepository.save(TrainerProfile.create(account));
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_ROLE", "Unsupported role: " + request.role());
+        }
 
         emailTokenService.sendConfirmationEmail(account);
 
