@@ -26,6 +26,16 @@ import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
 
+import io.minio.BucketExistsArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MinIOContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.utility.DockerImageName;
+
 import javax.imageio.ImageIO;
 
 import java.awt.image.BufferedImage;
@@ -37,6 +47,19 @@ import java.util.concurrent.CompletableFuture;
 @AutoConfigureMockMvc
 @Testcontainers
 class ProfileIntegrationTest extends AbstractRepositoryTest {
+    @Container
+    static MinIOContainer minio = new MinIOContainer(
+        DockerImageName.parse("pgsty/minio:latest").asCompatibleSubstituteFor("minio/minio")
+    );
+
+    @DynamicPropertySource
+    static void configureMinioProperties(DynamicPropertyRegistry registry) {
+        registry.add("app.minio.url", minio::getS3URL);
+        registry.add("app.minio.access-key", minio::getUserName);
+        registry.add("app.minio.secret-key", minio::getPassword);
+        registry.add("app.minio.bucket-name", () -> "test-bucket");
+    }
+
     @Autowired
     MockMvc mvc;
 
@@ -51,6 +74,16 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
 
     @Autowired
     ObjectMapper json;
+
+    @Autowired
+    private MinioClient minioClient;
+
+    @BeforeEach
+    void setUpMinioBucket() throws Exception {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-bucket").build())) {
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket("test-bucket").build());
+        }
+    }
 
     private static final String URL = "/v1/users/me";
 
@@ -207,7 +240,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         var owner = owner(UserRole.ATHLETE);
         var another = owner(UserRole.ATHLETE);
         byte[] png = image("png");
-        upload(owner, png)
+        upload(owner, png, "image/png", "test.png")
             .andExpect(status().isNoContent());
         mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isOk())
@@ -219,12 +252,12 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, another.token()))
             .andExpect(status().isNotFound());
         byte[] jpeg = image("jpeg");
-        upload(owner, jpeg)
+        upload(owner, jpeg, "image/jpeg", "test.jpg")
             .andExpect(status().isNoContent());
         mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(content().contentType("image/jpeg"))
             .andExpect(content().bytes(jpeg));
-        upload(owner, "invalid".getBytes())
+        upload(owner, "invalid".getBytes(), "text/plain", "invalid.txt")
             .andExpect(status().isBadRequest());
         mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(content().bytes(jpeg));
@@ -241,9 +274,9 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     @DisplayName("Проверка загрузки аватара")
     void rejectsInvalidUploads() throws Exception {
         var owner = owner(UserRole.ATHLETE);
-        upload(owner, new byte[5 * 1024 * 1024 + 1])
+        upload(owner, new byte[5 * 1024 * 1024 + 1], "image/png", "large.png")
             .andExpect(status().isPayloadTooLarge());
-        upload(owner, new byte[0])
+        upload(owner, new byte[0], "image/png", "empty.png")
             .andExpect(status().isBadRequest());
         mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, URL + "/avatar")
             .header(HttpHeaders.AUTHORIZATION, owner.token()))
@@ -282,9 +315,9 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
             .andExpect(status().isMethodNotAllowed());
     }
 
-    private ResultActions upload(Owner owner, byte[] bytes) throws Exception {
+    private ResultActions upload(Owner owner, byte[] bytes, String contentType, String filename) throws Exception {
         return mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, URL + "/avatar")
-            .file(new MockMultipartFile("file", "untrusted.txt", "text/plain", bytes))
+            .file(new MockMultipartFile("file", filename, contentType, bytes))
             .header(HttpHeaders.AUTHORIZATION, owner.token()));
     }
 

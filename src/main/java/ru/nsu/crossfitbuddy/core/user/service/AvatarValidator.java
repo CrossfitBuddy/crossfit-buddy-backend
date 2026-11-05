@@ -2,7 +2,9 @@ package ru.nsu.crossfitbuddy.core.user.service;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
+
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.io.ByteArrayInputStream;
@@ -14,14 +16,26 @@ public class AvatarValidator {
     public static final int MAX_BYTES = 5 * 1024 * 1024;
     private static final long MAX_PIXELS = 16_000_000;
 
-        public String validate(byte[] content) {
-        if (content.length > MAX_BYTES) {
-            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
-                "Avatar must not exceed 5 MB.");
+    public void validate(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw invalid();
         }
+        checkSize(file.getSize());
+
+        try {
+            validate(file.getBytes());
+        } catch (IOException e) {
+            throw invalid();
+        }
+    }
+
+    public String validate(byte[] content) {
+        checkSize(content.length);
+
         if (content.length == 0) {
             throw invalid();
         }
+
         try (var input = new MemoryCacheImageInputStream(new ByteArrayInputStream(content))) {
             var readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) {
@@ -51,6 +65,13 @@ public class AvatarValidator {
             throw exception;
         } catch (IOException | RuntimeException exception) {
             throw invalid();
+        }
+    }
+
+    private void checkSize(long size) {
+        if (size > MAX_BYTES) {
+            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
+                "Avatar must not exceed 5 MB.");
         }
     }
 

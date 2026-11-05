@@ -11,3 +11,10 @@ spring:
             enable: false
 server:
   fromAddress: test@example.com
+
+app:
+  minio:
+    url: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket-name: crossfitbuddy-avatars
