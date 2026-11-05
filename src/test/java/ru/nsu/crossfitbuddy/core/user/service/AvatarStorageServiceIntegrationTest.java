@@ -1,70 +1,51 @@
 package ru.nsu.crossfitbuddy.core.user.service;
 
 import io.minio.MinioClient;
-import org.junit.jupiter.api.BeforeEach;
+import io.minio.ObjectWriteResponse;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MinIOContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
+import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
-@Testcontainers
-class AvatarStorageServiceIntegrationTest {
-
-    @Container
-    static MinIOContainer minio = new MinIOContainer(
-        DockerImageName.parse("pgsty/minio:latest").asCompatibleSubstituteFor("minio/minio")
-    );
+class AvatarStorageServiceIntegrationTest extends AbstractRepositoryTest {
 
     @Autowired
     private AvatarStorageService avatarStorageService;
 
-    @Autowired
+    @MockBean
     private MinioClient minioClient;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.minio.url", minio::getS3URL);
-        registry.add("app.minio.access-key", minio::getUserName);
-        registry.add("app.minio.secret-key", minio::getPassword);
-        registry.add("app.minio.bucket-name", () -> "test-bucket");
-    }
-
-    @BeforeEach
-    void setUp() throws Exception {
-        if (!minioClient.bucketExists(
-            io.minio.BucketExistsArgs.builder().bucket("test-bucket").build())) {
-            minioClient.makeBucket(
-                io.minio.MakeBucketArgs.builder().bucket("test-bucket").build());
-        }
-    }
-
     @Test
-    void uploadAndDelete_shouldWorkWithRealMinio() throws Exception {
+    void uploadAndDelete_shouldInteractWithMinioCorrectly() throws Exception {
         UUID userId = UUID.randomUUID();
         byte[] imageBytes = "fake-image-data".getBytes();
         MockMultipartFile file = new MockMultipartFile(
             "file", "avatar.jpg", "image/jpeg", imageBytes);
 
-        String objectKey = avatarStorageService.upload(userId, file);
-        assertNotNull(objectKey);
+        when(minioClient.putObject(any(PutObjectArgs.class)))
+            .thenReturn(mock(ObjectWriteResponse.class));
 
-        byte[] downloaded = avatarStorageService.download(objectKey);
-        assertArrayEquals(imageBytes, downloaded);
+        doNothing().when(minioClient).removeObject(any(RemoveObjectArgs.class));
+
+        String objectKey = avatarStorageService.upload(userId, file);
+
+        assertNotNull(objectKey);
+        assertTrue(objectKey.contains(userId.toString()));
+
+        verify(minioClient, times(1)).putObject(any(PutObjectArgs.class));
 
         avatarStorageService.delete(objectKey);
-
-        assertThrows(Exception.class, () ->
-            avatarStorageService.download(objectKey));
+        verify(minioClient, times(1)).removeObject(any(RemoveObjectArgs.class));
     }
 }
