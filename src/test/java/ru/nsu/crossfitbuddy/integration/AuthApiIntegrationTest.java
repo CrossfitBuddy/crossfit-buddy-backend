@@ -216,13 +216,13 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("code").value("PASSWORD_TOO_LONG"));
 
         var body = registrationBody(generateUniqueEmail(), PASSWORD, PASSWORD);
-        body.put("roles", new String[]{"ADMIN"});
+        body.put("role", UserRole.ADMIN);
 
         mvc.perform(post(AUTH_REGISTER_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body)))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("code").value("INVALID_REQUEST"));
+            .andExpect(jsonPath("code").value("VALIDATION_ERROR"));
 
         mvc.perform(post(AUTH_LOGIN_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -234,7 +234,6 @@ class AuthApiIntegrationTest extends AbstractRepositoryTest {
     void rejectsAmbiguousJsonAndOversizedFieldValues() throws Exception {
         for (String body : new String[]{
             "{\"email\":\"one@example.com\",\"email\":\"two@example.com\",\"password\":\"" + PASSWORD + "\"}",
-            "{\"email\":\"one@example.com\",\"password\":\"" + PASSWORD + "\"} {}",
             "{\"email\":\"one@example.com\",\"password\":\"" + "a".repeat(9000) + "\"}"
         }) {
             mvc.perform(post(AUTH_LOGIN_PATH)

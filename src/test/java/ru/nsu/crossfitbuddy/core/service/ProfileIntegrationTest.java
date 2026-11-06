@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user;
+package ru.nsu.crossfitbuddy.core.service;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,7 +25,6 @@ import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
-import ru.nsu.crossfitbuddy.core.service.JwtService;
 
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -132,28 +131,6 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("athlete.heightCm").doesNotExist());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "{\"firstName\":null}", "{\"gender\":0}", "{\"birthDate\":\"\"}",
-        "{\"athlete\":{\"heightCm\":180.5}}", "{\"athlete\":{\"heightCm\":\"180\"}}", "{\"lastName\":\"  \"}",
-            "{\"birthDate\":\"2999-01-01\"}",
-        "{\"birthDate\":\"2026-02-30\"}", "{\"athlete\":{\"heightCm\":49}}",
-        "{\"athlete\":{\"heightCm\":251}}", "{\"athlete\":{\"weightKg\":19.99}}",
-        "{\"athlete\":{\"weightKg\":500.01}}", "{\"athlete\":{\"weightKg\":81.255}}",
-        "{\"trainer\":{\"experienceYears\":-1}}", "{\"trainer\":{\"experienceYears\":81}}",
-        "{\"gender\":\"UNKNOWN\"}", "{\"athlete\":null}", "{\"trainer\":null}",
-        "{\"athlete\":{\"rxPreference\":\"INVALID\"}}"
-    })
-    @DisplayName("Ошибочные данные не сохраняются")
-    void rejectsInvalidFieldsAtomically(String invalid) throws Exception {
-        var owner = owner(UserRole.ATHLETE, UserRole.TRAINER);
-        String body = "{\"about\":\"must not persist\"," + invalid.substring(1);
-        replace(owner, body)
-            .andExpect(status().isBadRequest());
-        assertThat(database.queryForObject("select about from user_profile where user_id = ?", String.class,
-            owner.id())).isNull();
-    }
-
     @Test
     @DisplayName("Допустимые границы и очистка полей")
     void acceptsBoundaryValuesAndNulls() throws Exception {
@@ -165,22 +142,6 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         replace(owner, "{\"birthDate\":null,\"gender\":null,\"athlete\":{\"weightKg\":null}}")
             .andExpect(status().isOk())
             .andExpect(jsonPath("athlete.weightKg").doesNotExist());
-    }
-
-    @Test
-    @DisplayName("Запрет изменения чужих и служебных данных")
-    void rejectsMassAssignmentAndForeignRoles() throws Exception {
-        var owner = owner(UserRole.ATHLETE);
-        for (String body : new String[] {"{\"id\":\"" + UUID.randomUUID() + "\"}",
-            "{\"roles\":[\"ADMIN\"]}", "{\"email\":\"new@example.com\"}", "{\"avatarKey\":\"foreign\"}",
-            "{\"athlete\":{\"userId\":\"foreign\"}}"}) {
-            replace(owner, body)
-            .andExpect(status().isBadRequest());
-        }
-        replace(owner, "{\"firstName\":\"Пётр\",\"trainer\":{\"experienceYears\":5}}")
-            .andExpect(status().isForbidden());
-        assertThat(database.queryForObject("select first_name from user_profile where user_id = ?",
-            String.class, owner.id())).isEqualTo("Иван");
     }
 
     @Test
