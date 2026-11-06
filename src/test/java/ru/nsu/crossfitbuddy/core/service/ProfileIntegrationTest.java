@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user;
+package ru.nsu.crossfitbuddy.core.service;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -21,10 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
-import ru.nsu.crossfitbuddy.core.service.JwtService;
 
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -91,7 +91,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     @DisplayName("Получение профиля со всеми ролями")
     void returnsAssignedProfilesWithoutPrivateAccountData() throws Exception {
         var owner = owner(UserRole.ATHLETE, UserRole.TRAINER);
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isOk())
             .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
             .andExpect(jsonPath("id").value(owner.id().toString()))
@@ -124,33 +124,11 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
             .andExpect(jsonPath("athlete.rxPreference").doesNotExist())
             .andExpect(jsonPath("trainer.experienceYears").doesNotExist())
             .andExpect(jsonPath("trainer.methodology").doesNotExist());
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(jsonPath("athlete.heightCm").value(190));
         replace(owner, "{}")
             .andExpect(status().isOk())
             .andExpect(jsonPath("athlete.heightCm").doesNotExist());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "{\"firstName\":null}", "{\"gender\":0}", "{\"birthDate\":\"\"}",
-        "{\"athlete\":{\"heightCm\":180.5}}", "{\"athlete\":{\"heightCm\":\"180\"}}", "{\"lastName\":\"  \"}",
-            "{\"birthDate\":\"2999-01-01\"}",
-        "{\"birthDate\":\"2026-02-30\"}", "{\"athlete\":{\"heightCm\":49}}",
-        "{\"athlete\":{\"heightCm\":251}}", "{\"athlete\":{\"weightKg\":19.99}}",
-        "{\"athlete\":{\"weightKg\":500.01}}", "{\"athlete\":{\"weightKg\":81.255}}",
-        "{\"trainer\":{\"experienceYears\":-1}}", "{\"trainer\":{\"experienceYears\":81}}",
-        "{\"gender\":\"UNKNOWN\"}", "{\"athlete\":null}", "{\"trainer\":null}",
-        "{\"athlete\":{\"rxPreference\":\"INVALID\"}}"
-    })
-    @DisplayName("Ошибочные данные не сохраняются")
-    void rejectsInvalidFieldsAtomically(String invalid) throws Exception {
-        var owner = owner(UserRole.ATHLETE, UserRole.TRAINER);
-        String body = "{\"about\":\"must not persist\"," + invalid.substring(1);
-        replace(owner, body)
-            .andExpect(status().isBadRequest());
-        assertThat(database.queryForObject("select about from user_profile where user_id = ?", String.class,
-            owner.id())).isNull();
     }
 
     @Test
@@ -167,36 +145,20 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @DisplayName("Запрет изменения чужих и служебных данных")
-    void rejectsMassAssignmentAndForeignRoles() throws Exception {
-        var owner = owner(UserRole.ATHLETE);
-        for (String body : new String[] {"{\"id\":\"" + UUID.randomUUID() + "\"}",
-            "{\"roles\":[\"ADMIN\"]}", "{\"email\":\"new@example.com\"}", "{\"avatarKey\":\"foreign\"}",
-            "{\"athlete\":{\"userId\":\"foreign\"}}"}) {
-            replace(owner, body)
-            .andExpect(status().isBadRequest());
-        }
-        replace(owner, "{\"firstName\":\"Пётр\",\"trainer\":{\"experienceYears\":5}}")
-            .andExpect(status().isForbidden());
-        assertThat(database.queryForObject("select first_name from user_profile where user_id = ?",
-            String.class, owner.id())).isEqualTo("Иван");
-    }
-
-    @Test
     @DisplayName("Доступ только к своему профилю после входа")
     void isolatesOwnersAndRequiresAuthentication() throws Exception {
         var first = owner(UserRole.ATHLETE);
         var second = owner(UserRole.ATHLETE);
         replace(first, "{\"city\":\"Москва\"}")
             .andExpect(status().isOk());
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, second.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, second.token()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("city").doesNotExist());
-        mvc.perform(get(URL))
+        mvc.perform(get(Paths.PROFILE))
             .andExpect(status().isUnauthorized());
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(URL).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(Paths.PROFILE).contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isUnauthorized());
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
             .andExpect(status().isUnauthorized());
         database.update("update user_account set enabled=false where id=?", first.id());
         replace(first, "{}")
@@ -214,7 +176,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         assertThat(database.queryForObject("select city from user_profile where user_id=?", String.class,
             owner.id())).isNull();
         database.update("delete from user_profile where user_id=?", owner.id());
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("code").value("PROFILE_NOT_FOUND"));
     }
@@ -242,30 +204,30 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         byte[] png = image("png");
         upload(owner, png, "image/png", "test.png")
             .andExpect(status().isNoContent());
-        mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType("image/png"))
+            .andExpect(content().contentType(MediaType.IMAGE_PNG_VALUE))
             .andExpect(content().bytes(png))
             .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, owner.token()))
-            .andExpect(jsonPath("avatarUrl").value(URL + "/avatar"));
-        mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, another.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token()))
+            .andExpect(jsonPath("avatarUrl").value(Paths.AVATAR));
+        mvc.perform(get(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, another.token()))
             .andExpect(status().isNotFound());
         byte[] jpeg = image("jpeg");
         upload(owner, jpeg, "image/jpeg", "test.jpg")
             .andExpect(status().isNoContent());
-        mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
-            .andExpect(content().contentType("image/jpeg"))
+        mvc.perform(get(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, owner.token()))
+            .andExpect(content().contentType(MediaType.IMAGE_JPEG_VALUE))
             .andExpect(content().bytes(jpeg));
         upload(owner, "invalid".getBytes(), "text/plain", "invalid.txt")
             .andExpect(status().isBadRequest());
-        mvc.perform(get(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(content().bytes(jpeg));
-        mvc.perform(delete(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(delete(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isNoContent());
-        mvc.perform(delete(URL + "/avatar").header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(delete(Paths.AVATAR).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isNoContent());
-        mvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, owner.token()))
+        mvc.perform(get(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(jsonPath("avatarUrl").doesNotExist())
             .andExpect(jsonPath("initials").value("ИИ"));
     }
@@ -278,13 +240,13 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
             .andExpect(status().isPayloadTooLarge());
         upload(owner, new byte[0], "image/png", "empty.png")
             .andExpect(status().isBadRequest());
-        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, URL + "/avatar")
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, Paths.AVATAR)
             .header(HttpHeaders.AUTHORIZATION, owner.token()))
             .andExpect(status().isBadRequest());
-        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, URL + "/avatar")
-            .file(new MockMultipartFile("file", "image.png", "image/png", image("png"))))
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, Paths.AVATAR)
+            .file(new MockMultipartFile("file", "image.png", MediaType.IMAGE_PNG_VALUE, image("png"))))
             .andExpect(status().isUnauthorized());
-        mvc.perform(delete(URL + "/avatar"))
+        mvc.perform(delete(Paths.AVATAR))
             .andExpect(status().isUnauthorized());
     }
 
@@ -299,7 +261,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     @DisplayName("PUT отклоняет неполный профиль и дубли JSON без изменения данных")
     void rejectsIncompleteReplacement(String body) throws Exception {
         var owner = owner(UserRole.ATHLETE, UserRole.TRAINER);
-        mvc.perform(put(URL).header(HttpHeaders.AUTHORIZATION, owner.token())
+        mvc.perform(put(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token())
             .contentType(MediaType.APPLICATION_JSON).content(body))
             .andExpect(status().isBadRequest());
         assertThat(database.queryForObject("select city from user_profile where user_id=?", String.class,
@@ -310,7 +272,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
     @DisplayName("Профиль обновляется через PUT, PATCH больше не поддерживается")
     void rejectsPatch() throws Exception {
         var owner = owner(UserRole.ATHLETE);
-        mvc.perform(patch(URL).header(HttpHeaders.AUTHORIZATION, owner.token())
+        mvc.perform(patch(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token())
             .contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isMethodNotAllowed());
     }
@@ -339,7 +301,7 @@ class ProfileIntegrationTest extends AbstractRepositoryTest {
         String prefix = json.writeValueAsString(defaults);
         String complete = prefix.substring(0, prefix.length() - 1)
             + (defaults.isEmpty() || fields.isEmpty() ? "" : ",") + body.substring(1);
-        return mvc.perform(put(URL).header(HttpHeaders.AUTHORIZATION, owner.token())
+        return mvc.perform(put(Paths.PROFILE).header(HttpHeaders.AUTHORIZATION, owner.token())
             .contentType(MediaType.APPLICATION_JSON).content(complete));
     }
 

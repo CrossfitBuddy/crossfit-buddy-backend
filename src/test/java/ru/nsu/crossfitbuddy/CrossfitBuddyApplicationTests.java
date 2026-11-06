@@ -12,6 +12,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
+import ru.nsu.crossfitbuddy.core.controller.InfraPaths;
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.dto.response.ErrorResponse;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
@@ -40,15 +42,15 @@ class CrossfitBuddyApplicationTests extends AbstractRepositoryTest {
 
     @Test
     void servletContainerProtectsApiAndAllowsPublicLoginWithStaleToken() {
-        assertThat(http.getForEntity("/actuator/health", String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(http.getForEntity("/v1/auth/me", ErrorResponse.class).getStatusCode())
+        assertThat(http.getForEntity(InfraPaths.ACTUATOR_HEALTH, String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(http.getForEntity(Paths.AUTH + Paths.AUTH_ME, ErrorResponse.class).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth("stale-token");
         var request = new HttpEntity<>(Map.of("email", "unknown@example.com", "password", "StrongPassword12345"),
             headers);
-        var response = http.postForEntity("/v1/auth/login", request, ErrorResponse.class);
+        var response = http.postForEntity(Paths.AUTH + Paths.AUTH_LOGIN, request, ErrorResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("INVALID_CREDENTIALS");

@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.nsu.crossfitbuddy.core.dto.request.UpdateProfileRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.ProfileResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
-import ru.nsu.crossfitbuddy.core.user.service.ProfileService;
+import ru.nsu.crossfitbuddy.core.service.ProfileService;
 
 @RestController
-@RequestMapping("/v1/users/me")
+@RequestMapping(Paths.PROFILE)
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class ProfileController {

@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.controller;
+package ru.nsu.crossfitbuddy.integration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

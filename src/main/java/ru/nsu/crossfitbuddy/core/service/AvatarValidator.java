@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user.service;
+package ru.nsu.crossfitbuddy.core.service;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;

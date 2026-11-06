@@ -1,4 +1,4 @@
-package ru.nsu.crossfitbuddy.core.user.service;
+package ru.nsu.crossfitbuddy.core.service;
 
 import lombok.RequiredArgsConstructor;
 
@@ -7,6 +7,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.dto.request.UpdateProfileRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.ProfileResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
@@ -91,7 +92,7 @@ public class ProfileService {
         return new ProfileResponse(account.getId(), account.getEmail(), account.getRoles(),
             profile.getFirstName(), profile.getLastName(), profile.getDisplayName(), profile.getBirthDate(),
             profile.getGender(), profile.getCity(), profile.getAbout(),
-            userAvatarRepository.existsById(profile.getId()) ? "/v1/users/me/avatar" : null,
+            userAvatarRepository.existsById(profile.getId()) ? Paths.AVATAR : null,
             extractInitial(profile.getFirstName()) + extractInitial(profile.getLastName()), athlete, trainer);
     }
 
