@@ -1,9 +1,12 @@
 package ru.nsu.crossfitbuddy.core.service;
 
-import jakarta.mail.MessagingException;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailException;
@@ -11,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ru.nsu.crossfitbuddy.config.PasswordRecoveryProperties;
 import ru.nsu.crossfitbuddy.core.dto.request.PasswordResetConfirmation;
 import ru.nsu.crossfitbuddy.core.entity.PasswordResetCode;
@@ -20,11 +26,6 @@ import ru.nsu.crossfitbuddy.core.mail.service.MailCreator;
 import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.PasswordResetCodeRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
-
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.time.Clock;
-import java.util.Locale;
 
 @Service
 @Slf4j
@@ -65,12 +66,12 @@ public class PasswordRecoveryService {
             resetCode.replace(passwordEncoder.encode(code), now, now.plus(properties.codeTtl()));
             passwordResetCodeRepository.save(resetCode);
 
+            var expiresAtLocalTime = LocalDateTime.ofInstant(
+                    Instant.now().plus(properties.codeTtl()), ZoneId.of("Europe/Moscow"));
             try {
-                mailService.sendHtml(new RawMailTemplate(
-                        "Для восстановления пароля используйте код: " + code
-                                + ". Срок действия кода: " + properties.codeTtl().toSeconds()
-                                + " секунд",
-                        account.getEmail(), "Восстановление доступа к системе"));
+
+                mailService.sendHtml(mailCreator
+                        .getPasswordRecoveryMessage(expiresAtLocalTime, code, account.getEmail()));
 
             } catch (MessagingException | MailException exception) {
                 transaction.setRollbackOnly();

@@ -9,6 +9,7 @@ import org.thymeleaf.TemplateEngine;
 
 import lombok.RequiredArgsConstructor;
 import ru.nsu.crossfitbuddy.core.mail.mailTemplates.EmailConfirmMailTemplates;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.PasswordRecoveryMailTemlates;
 
 @Service
 public class MailCreator {
@@ -24,9 +25,16 @@ public class MailCreator {
     }
 
     public EmailConfirmMailTemplates getEmailConfirmMessage(LocalDateTime dateOfExpired,
+            String link,
+            String toAddress) {
+        return new EmailConfirmMailTemplates(dateOfExpired, link, toAddress, templateEngine,
+                templateSrcEmailConfirm);
+    }
+
+    public PasswordRecoveryMailTemlates getPasswordRecoveryMessage(LocalDateTime dateOfExpired,
             String code,
             String toAddress) {
-        return new EmailConfirmMailTemplates(dateOfExpired, code, toAddress, templateEngine,
+        return new PasswordRecoveryMailTemlates(dateOfExpired, code, toAddress, templateEngine,
                 templateSrcEmailConfirm);
     }
 
