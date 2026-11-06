@@ -8,7 +8,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.nsu.crossfitbuddy.core.dto.request.PasswordResetConfirmation;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
-import ru.nsu.crossfitbuddy.core.mail.MailService;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.service.PasswordRecoveryService;
@@ -52,7 +53,7 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
         doAnswer(invocation -> {
             delivered.append(invocation.getArgument(2, String.class));
             return null;
-        }).when(mailService).sendHtml(eq(email), anyString(), anyString());
+        }).when(mailService).sendHtml(new RawMailTemplate(anyString(), eq(email), anyString()));
 
         service.requestCode(email);
 

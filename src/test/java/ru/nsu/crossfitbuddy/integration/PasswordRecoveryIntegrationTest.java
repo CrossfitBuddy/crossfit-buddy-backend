@@ -28,7 +28,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
-import ru.nsu.crossfitbuddy.core.mail.SMTPMailService;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.SMTPMailService;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -274,8 +275,8 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         requestCode(user.email()).andExpect(status().isOk());
         String code = deliveredCode();
 
-        doThrow(new MailSendException("SMTP unavailable")).when(mail).sendHtml(anyString(),
-                anyString(), anyString());
+        doThrow(new MailSendException("SMTP unavailable")).when(mail)
+                .sendHtml(new RawMailTemplate(anyString(), anyString(), anyString()));
         requestCode(user.email()).andExpect(status().isOk())
                 .andExpect(jsonPath("message")
                         .value("Код восстановления отправлен на указанный email"));
@@ -457,8 +458,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mvc.perform(post(Paths.AUTH + Paths.AUTH_LOGIN)
-                .contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email", email, "password", password))));
     }
 

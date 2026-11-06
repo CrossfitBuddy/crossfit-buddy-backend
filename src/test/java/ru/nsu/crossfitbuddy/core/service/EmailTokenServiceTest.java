@@ -14,7 +14,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import ru.nsu.crossfitbuddy.core.entity.EmailToken;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
-import ru.nsu.crossfitbuddy.core.mail.MailService;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.EmailTokenRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 
@@ -66,10 +67,9 @@ class EmailTokenServiceTest {
     @AfterEach
     void tearDown() {
         verifyNoMoreInteractions(
-            tokenRepository,
-            userAccountRepository,
-            mailService
-        );
+                tokenRepository,
+                userAccountRepository,
+                mailService);
     }
 
     @Test
@@ -78,9 +78,9 @@ class EmailTokenServiceTest {
         when(user.isEnabled()).thenReturn(true);
 
         assertThatThrownBy(() -> service.sendConfirmationEmail(user))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.BAD_REQUEST));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
@@ -100,7 +100,8 @@ class EmailTokenServiceTest {
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(tokenCaptor.capture());
-        verify(mailService).sendHtml(eq(email), eq(CONFIRM_SUBJECT), linkCaptor.capture());
+        verify(mailService).sendHtml(
+                new RawMailTemplate(linkCaptor.capture(), eq(email), eq(CONFIRM_SUBJECT)));
 
         EmailToken savedToken = tokenCaptor.getValue();
         String link = linkCaptor.getValue();
@@ -127,17 +128,19 @@ class EmailTokenServiceTest {
         when(user.getEmail()).thenReturn(email);
 
         doThrow(new MessagingException("SMTP down"))
-            .when(mailService)
-            .sendHtml(anyString(), anyString(), anyString());
+                .when(mailService)
+                .sendHtml(new RawMailTemplate(anyString(), anyString(), anyString()));
 
         assertThatThrownBy(() -> service.sendConfirmationEmail(user))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR));
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(any(EmailToken.class));
-        verify(mailService).sendHtml(eq(email), eq(CONFIRM_SUBJECT), anyString());
+        verify(mailService)
+                .sendHtml(new RawMailTemplate(anyString(), eq(email), eq(CONFIRM_SUBJECT)));
+
     }
 
     @Test
@@ -145,43 +148,43 @@ class EmailTokenServiceTest {
         when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.confirmEmail("raw-token"))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.BAD_REQUEST));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
     void confirmEmail_throwsGone_ifTokenAlreadyUsed() {
         EmailToken token = EmailToken.builder()
-            .userAccountId(UUID.randomUUID())
-            .tokenHash("hash")
-            .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-            .usedAt(Instant.now().minusSeconds(1))
-            .build();
+                .userAccountId(UUID.randomUUID())
+                .tokenHash("hash")
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .usedAt(Instant.now().minusSeconds(1))
+                .build();
 
         when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> service.confirmEmail("raw-token"))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.GONE));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.GONE));
     }
 
     @Test
     void confirmEmail_throwsGone_ifTokenExpired() {
         EmailToken token = EmailToken.builder()
-            .userAccountId(UUID.randomUUID())
-            .tokenHash("hash")
-            .expiresAt(Instant.now().minusSeconds(1))
-            .usedAt(null)
-            .build();
+                .userAccountId(UUID.randomUUID())
+                .tokenHash("hash")
+                .expiresAt(Instant.now().minusSeconds(1))
+                .usedAt(null)
+                .build();
 
         when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> service.confirmEmail("raw-token"))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.GONE));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.GONE));
     }
 
     @Test
@@ -189,19 +192,19 @@ class EmailTokenServiceTest {
         UUID userId = UUID.randomUUID();
 
         EmailToken token = EmailToken.builder()
-            .userAccountId(userId)
-            .tokenHash("hash")
-            .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-            .usedAt(null)
-            .build();
+                .userAccountId(userId)
+                .tokenHash("hash")
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .usedAt(null)
+                .build();
 
         when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
         when(userAccountRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.confirmEmail("raw-token"))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.NOT_FOUND));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
     @Test
@@ -209,11 +212,11 @@ class EmailTokenServiceTest {
         UUID userId = UUID.randomUUID();
 
         EmailToken token = EmailToken.builder()
-            .userAccountId(userId)
-            .tokenHash("hash")
-            .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-            .usedAt(null)
-            .build();
+                .userAccountId(userId)
+                .tokenHash("hash")
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .usedAt(null)
+                .build();
 
         UserAccount user = mock(UserAccount.class);
 
@@ -234,12 +237,13 @@ class EmailTokenServiceTest {
         UserAccount user = mock(UserAccount.class);
         when(user.isEnabled()).thenReturn(true);
 
-        when(userAccountRepository.findByEmail("enabled@example.com")).thenReturn(Optional.of(user));
+        when(userAccountRepository.findByEmail("enabled@example.com"))
+                .thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> service.resendEmail("enabled@example.com"))
-            .isInstanceOf(ApiException.class)
-            .satisfies(ex -> assertThat(((ApiException) ex).status())
-                .isEqualTo(HttpStatus.BAD_REQUEST));
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).status())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
@@ -261,7 +265,8 @@ class EmailTokenServiceTest {
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(tokenCaptor.capture());
-        verify(mailService).sendHtml(eq(email), eq(CONFIRM_SUBJECT), linkCaptor.capture());
+        verify(mailService).sendHtml(
+                new RawMailTemplate(linkCaptor.capture(), eq(email), eq(CONFIRM_SUBJECT)));
 
         EmailToken savedToken = tokenCaptor.getValue();
         String link = linkCaptor.getValue();

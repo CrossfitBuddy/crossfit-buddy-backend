@@ -1,8 +1,4 @@
-<<<<<<< HEAD:src/test/java/ru/nsu/crossfitbuddy/core/service/AvatarStorageServiceTest.java
 package ru.nsu.crossfitbuddy.core.service;
-=======
-package ru.nsu.crossfitbuddy.core.user.service;
->>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара):src/test/java/ru/nsu/crossfitbuddy/core/user/service/AvatarStorageServiceTest.java
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -40,7 +36,8 @@ class AvatarStorageServiceTest {
     @Test
     void upload_shouldReturnObjectKey_whenSuccessful() throws Exception {
         UUID userId = UUID.randomUUID();
-        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", "fake-image-data".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg",
+                "fake-image-data".getBytes());
 
         String objectKey = avatarStorageService.upload(userId, file);
 

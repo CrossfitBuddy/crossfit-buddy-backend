@@ -33,13 +33,8 @@ public class AvatarController {
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> replaceCurrentAvatar(
-<<<<<<< HEAD
             @AuthenticationPrincipal CurrentUser currentUser,
             @RequestPart("file") MultipartFile file) throws IOException {
-=======
-        @AuthenticationPrincipal CurrentUser currentUser,
-        @RequestPart("file") MultipartFile file) throws IOException {
->>>>>>> 1c7011e ([CB-18072] Реализовать загрузку и удаление аватара)
 
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_FILE", "File must not be empty.");
