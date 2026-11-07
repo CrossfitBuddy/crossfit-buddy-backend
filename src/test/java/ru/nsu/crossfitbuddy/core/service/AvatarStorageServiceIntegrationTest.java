@@ -31,10 +31,10 @@ class AvatarStorageServiceIntegrationTest extends AbstractRepositoryTest {
         UUID userId = UUID.randomUUID();
         byte[] imageBytes = "fake-image-data".getBytes();
         MockMultipartFile file = new MockMultipartFile(
-            "file", "avatar.jpg", "image/jpeg", imageBytes);
+                "file", "avatar.jpg", "image/jpeg", imageBytes);
 
         when(minioClient.putObject(any(PutObjectArgs.class)))
-            .thenReturn(mock(ObjectWriteResponse.class));
+                .thenReturn(mock(ObjectWriteResponse.class));
 
         doNothing().when(minioClient).removeObject(any(RemoveObjectArgs.class));
 

@@ -28,17 +28,20 @@ public class ProfileController {
     private final ProfileService profileService;
 
     @GetMapping
-    public ResponseEntity<ProfileResponse> getCurrentProfile(@AuthenticationPrincipal CurrentUser currentUser) {
+    public ResponseEntity<ProfileResponse> getCurrentProfile(
+            @AuthenticationPrincipal CurrentUser currentUser) {
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .body(profileService.getCurrentProfile(currentUser));
+                .cacheControl(CacheControl.noStore())
+                .body(profileService.getCurrentProfile(currentUser));
     }
 
     @PutMapping
-    public ResponseEntity<ProfileResponse> updateCurrentProfile(@AuthenticationPrincipal CurrentUser currentUser,
-        @Valid @RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<ProfileResponse> updateCurrentProfile(
+            @AuthenticationPrincipal CurrentUser currentUser,
+            @Valid
+            @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .body(profileService.updateCurrentProfile(currentUser, request));
+                .cacheControl(CacheControl.noStore())
+                .body(profileService.updateCurrentProfile(currentUser, request));
     }
 }

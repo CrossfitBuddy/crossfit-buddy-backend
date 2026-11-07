@@ -23,18 +23,21 @@ public class PasswordRecoveryController {
     private final PasswordRecoveryService passwordRecoveryService;
 
     @PostMapping(Paths.AUTH_PASSWORD_RECOVERY_REQUEST)
-    public ResponseEntity<MessageResponse> request(@Valid @RequestBody PasswordResetRequest request) {
+    public ResponseEntity<MessageResponse> request(@Valid
+    @RequestBody PasswordResetRequest request) {
         passwordRecoveryService.requestCode(request.email());
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .body(new MessageResponse("Код восстановления отправлен на указанный email"));
+                .cacheControl(CacheControl.noStore())
+                .body(new MessageResponse("Код восстановления отправлен на указанный email"));
     }
 
     @PostMapping(Paths.AUTH_PASSWORD_RECOVERY_CONFIRM)
-    public ResponseEntity<MessageResponse> confirm(@Valid @RequestBody PasswordResetConfirmation request) {
+    public ResponseEntity<MessageResponse> confirm(@Valid
+    @RequestBody PasswordResetConfirmation request) {
         passwordRecoveryService.resetPassword(request);
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .body(new MessageResponse("Пароль успешно изменен. Вы можете войти в систему с новым паролем"));
+                .cacheControl(CacheControl.noStore())
+                .body(new MessageResponse(
+                        "Пароль успешно изменен. Вы можете войти в систему с новым паролем"));
     }
 }
