@@ -33,6 +33,14 @@ import ru.nsu.crossfitbuddy.core.mail.service.SMTPMailService;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -48,14 +56,7 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.jsoup.Jsoup;
 
 @SpringBootTest(properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 @AutoConfigureMockMvc
@@ -276,7 +277,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         String code = deliveredCode();
 
         doThrow(new MailSendException("SMTP unavailable")).when(mail)
-                .sendHtml(new RawMailTemplate(anyString(), anyString(), anyString()));
+                .sendHtml(any());
         requestCode(user.email()).andExpect(status().isOk())
                 .andExpect(jsonPath("message")
                         .value("Код восстановления отправлен на указанный email"));
@@ -481,7 +482,7 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         var messages = SMTP.getReceivedMessages();
         assertThat(messages).isNotEmpty();
         var message = messages[messages.length - 1];
-        assertThat(message.getSubject()).isEqualTo("Восстановление доступа к системе");
+        assertThat(message.getSubject()).isEqualTo("Восстановление пароля CrossfitBuddy");
         var matcher = Pattern.compile("[0-9]{6}").matcher(text(message));
         assertThat(matcher.find()).isTrue();
         return matcher.group();
@@ -493,7 +494,8 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
             for (int i = 0; i < multipart.getCount(); i++) {
                 result.append(text(multipart.getBodyPart(i)));
             }
-            return result.toString();
+            return Jsoup.parse(result.toString()).text();
+
         }
         return part.getContent().toString();
     }

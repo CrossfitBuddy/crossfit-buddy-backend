@@ -45,4 +45,8 @@ public class EmailConfirmMailTemplates implements MailTemplates {
         return toAddress;
     }
 
+    public String getLink() {
+        return confirmationLink;
+    }
+
 }

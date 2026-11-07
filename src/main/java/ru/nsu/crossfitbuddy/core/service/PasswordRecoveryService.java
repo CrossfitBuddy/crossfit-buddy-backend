@@ -95,25 +95,31 @@ public class PasswordRecoveryService {
             var result = userAccountRepository.findByEmailForUpdate(
                     AccountDetailsService.normalizeEmail(request.email()));
             if (result.isEmpty()) {
+                log.info("result is empty");
                 return PasswordRecoveryFailure.INVALID;
             }
             var account = result.get();
             if (!account.isEnabled() || account.isDeleted()) {
+                log.info("account disabled");
                 return PasswordRecoveryFailure.INVALID;
             }
 
             var code = passwordResetCodeRepository.findByUserAccountId(account.getId())
                     .orElse(null);
             if (code == null || code.getConsumedAt() != null) {
+                log.info("code null or consume");
                 return PasswordRecoveryFailure.INVALID;
             }
             if (code.getFailedAttempts() >= properties.maxAttempts()) {
+                log.info("max attemtps");
                 return PasswordRecoveryFailure.EXHAUSTED;
             }
             if (!clock.instant().isBefore(code.getExpiresAt())) {
+                log.info("ExpiresAt");
                 return PasswordRecoveryFailure.EXPIRED;
             }
             if (!passwordEncoder.matches(request.code(), code.getCodeHash())) {
+                log.info("mismatch");
                 code.recordFailure();
                 return code.getFailedAttempts() >= properties.maxAttempts()
                         ? PasswordRecoveryFailure.EXHAUSTED

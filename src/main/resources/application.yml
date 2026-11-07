@@ -28,6 +28,9 @@ spring:
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
+    templates:
+      emailConfirm: mail/emailConfirm
+      passwordRecovery: mail/passwordRecovery
     protocol: smtp
     properties:
       mail:

@@ -14,7 +14,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import ru.nsu.crossfitbuddy.core.entity.EmailToken;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.EmailConfirmMailTemplates;
 import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.MailCreator;
 import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.EmailTokenRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
@@ -27,12 +29,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -54,6 +59,9 @@ class EmailTokenServiceTest {
 
     @Mock
     private MailService mailService;
+
+    @Mock
+    private MailCreator mailCreator;
 
     @InjectMocks
     private EmailTokenService service;
@@ -85,6 +93,16 @@ class EmailTokenServiceTest {
 
     @Test
     void sendConfirmationEmail_invalidatesOldTokens_savesNewToken_andSendsLink() throws Exception {
+        when(mailCreator.getEmailConfirmMessage(any(), any(), any()))
+                .thenAnswer(invocation -> {
+                    // Вытаскиваем аргументы из вызова прямо в момент работы продакшн-кода
+                    String linkArg = invocation.getArgument(1);
+                    String emailArg = invocation.getArgument(2);
+
+                    // Возвращаем объект, иначе mailCreator вернет null и всё упадет дальше
+                    return new RawMailTemplate(linkArg, emailArg, CONFIRM_SUBJECT);
+                });
+
         UUID userId = UUID.randomUUID();
         String email = "user@example.com";
 
@@ -96,15 +114,22 @@ class EmailTokenServiceTest {
         service.sendConfirmationEmail(user);
 
         ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
-        ArgumentCaptor<String> linkCaptor = ArgumentCaptor.forClass(String.class);
+        // ArgumentCaptor<String> linkCaptor = ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<RawMailTemplate> mailTemplateCaptor = ArgumentCaptor
+                .forClass(RawMailTemplate.class);
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(tokenCaptor.capture());
-        verify(mailService).sendHtml(
-                new RawMailTemplate(linkCaptor.capture(), eq(email), eq(CONFIRM_SUBJECT)));
+        verify(mailService).sendHtml(mailTemplateCaptor.capture());
+
+        var mailTemplate = mailTemplateCaptor.getValue();
+
+        assertEquals(CONFIRM_SUBJECT, mailTemplate.getSubject());
+        assertEquals(email, mailTemplate.getToAddress());
 
         EmailToken savedToken = tokenCaptor.getValue();
-        String link = linkCaptor.getValue();
+        String link = mailTemplate.getBody();
 
         assertThat(savedToken.getUserAccountId()).isEqualTo(userId);
         assertThat(savedToken.getTokenHash()).hasSize(64);
@@ -119,6 +144,14 @@ class EmailTokenServiceTest {
 
     @Test
     void sendConfirmationEmail_throwsInternalServerError_ifMailFails() throws Exception {
+        when(mailCreator.getEmailConfirmMessage(any(), any(), any()))
+                .thenAnswer(invocation -> {
+                    String linkArg = invocation.getArgument(1);
+                    String emailArg = invocation.getArgument(2);
+
+                    return new RawMailTemplate(linkArg, emailArg, CONFIRM_SUBJECT);
+                });
+
         UUID userId = UUID.randomUUID();
         String email = "user@example.com";
 
@@ -129,7 +162,7 @@ class EmailTokenServiceTest {
 
         doThrow(new MessagingException("SMTP down"))
                 .when(mailService)
-                .sendHtml(new RawMailTemplate(anyString(), anyString(), anyString()));
+                .sendHtml(any());
 
         assertThatThrownBy(() -> service.sendConfirmationEmail(user))
                 .isInstanceOf(ApiException.class)
@@ -138,8 +171,14 @@ class EmailTokenServiceTest {
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(any(EmailToken.class));
-        verify(mailService)
-                .sendHtml(new RawMailTemplate(anyString(), eq(email), eq(CONFIRM_SUBJECT)));
+        ArgumentCaptor<RawMailTemplate> mailTemplateCaptor = ArgumentCaptor
+                .forClass(RawMailTemplate.class);
+
+        verify(mailService).sendHtml(mailTemplateCaptor.capture());
+        var mailTemplate = mailTemplateCaptor.getValue();
+
+        assertEquals(CONFIRM_SUBJECT, mailTemplate.getSubject());
+        assertEquals(email, mailTemplate.getToAddress());
 
     }
 
@@ -248,6 +287,14 @@ class EmailTokenServiceTest {
 
     @Test
     void resendEmail_sendsNewConfirmationEmail_ifUserNotEnabled() throws Exception {
+        when(mailCreator.getEmailConfirmMessage(any(), any(), any()))
+                .thenAnswer(invocation -> {
+                    String linkArg = invocation.getArgument(1);
+                    String emailArg = invocation.getArgument(2);
+
+                    return new RawMailTemplate(linkArg, emailArg, CONFIRM_SUBJECT);
+                });
+
         UUID userId = UUID.randomUUID();
         String email = "user@example.com";
 
@@ -261,15 +308,21 @@ class EmailTokenServiceTest {
         service.resendEmail(email);
 
         ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
-        ArgumentCaptor<String> linkCaptor = ArgumentCaptor.forClass(String.class);
 
         verify(tokenRepository).invalidateOldTokens(userId);
         verify(tokenRepository).save(tokenCaptor.capture());
-        verify(mailService).sendHtml(
-                new RawMailTemplate(linkCaptor.capture(), eq(email), eq(CONFIRM_SUBJECT)));
+        ArgumentCaptor<RawMailTemplate> mailTemplateCaptor = ArgumentCaptor
+                .forClass(RawMailTemplate.class);
+
+        verify(mailService).sendHtml(mailTemplateCaptor.capture());
+
+        var mailTemplate = mailTemplateCaptor.getValue();
+
+        assertEquals(CONFIRM_SUBJECT, mailTemplate.getSubject());
+        assertEquals(email, mailTemplate.getToAddress());
 
         EmailToken savedToken = tokenCaptor.getValue();
-        String link = linkCaptor.getValue();
+        String link = mailTemplate.getBody();
 
         assertThat(savedToken.getUserAccountId()).isEqualTo(userId);
         assertThat(savedToken.getTokenHash()).hasSize(64);

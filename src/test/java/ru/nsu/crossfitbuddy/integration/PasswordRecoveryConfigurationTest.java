@@ -1,27 +1,32 @@
 package ru.nsu.crossfitbuddy.integration;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import ru.nsu.crossfitbuddy.core.dto.request.PasswordResetConfirmation;
-import ru.nsu.crossfitbuddy.core.entity.UserAccount;
-import ru.nsu.crossfitbuddy.core.exception.ApiException;
-import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
-import ru.nsu.crossfitbuddy.core.mail.service.MailService;
-import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
-import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
-import ru.nsu.crossfitbuddy.core.service.PasswordRecoveryService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
+import org.jsoup.Jsoup;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import ru.nsu.crossfitbuddy.core.dto.request.PasswordResetConfirmation;
+import ru.nsu.crossfitbuddy.core.entity.UserAccount;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.PasswordRecoveryMailTemlates;
+import ru.nsu.crossfitbuddy.core.mail.service.MailService;
+import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
+import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
+import ru.nsu.crossfitbuddy.core.service.PasswordRecoveryService;
 
 @SpringBootTest(properties = {
         "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
@@ -49,19 +54,24 @@ class PasswordRecoveryConfigurationTest extends AbstractRepositoryTest {
                 .passwordHash("old-hash")
                 .enabled(true)
                 .build());
-        var delivered = new StringBuilder();
+        PasswordRecoveryMailTemlates[] delivered = new PasswordRecoveryMailTemlates[1];
+
+        ArgumentCaptor<PasswordRecoveryMailTemlates> mailTemplateCaptor = ArgumentCaptor
+                .forClass(PasswordRecoveryMailTemlates.class);
         doAnswer(invocation -> {
-            delivered.append(invocation.getArgument(2, String.class));
+            delivered[0] = (invocation.getArgument(0, PasswordRecoveryMailTemlates.class));
             return null;
-        }).when(mailService).sendHtml(new RawMailTemplate(anyString(), eq(email), anyString()));
+        }).when(mailService).sendHtml(mailTemplateCaptor.capture());
 
         service.requestCode(email);
+
+        assertEquals(email, mailTemplateCaptor.getValue().getToAddress());
 
         assertThat(database.queryForObject(
                 "select extract(epoch from expires_at-created_at)::int from password_reset_code where user_id=?",
                 Integer.class, account.getId())).isEqualTo(1200);
-        assertThat(delivered).contains("1200 секунд");
-        var matcher = Pattern.compile("[0-9]{6}").matcher(delivered);
+        var matcher = Pattern.compile("[0-9]{6}")
+                .matcher(Jsoup.parse(delivered[0].getBody()).text());
         assertThat(matcher.find()).isTrue();
         String code = matcher.group();
         String wrongCode = code.equals("000000") ? "000001" : "000000";
