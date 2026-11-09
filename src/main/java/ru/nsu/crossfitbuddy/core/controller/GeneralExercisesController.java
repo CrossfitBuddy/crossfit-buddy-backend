@@ -32,7 +32,7 @@ public class GeneralExercisesController {
         generalExercisesService.createExercise(request);
     }
 
-    @PutMapping(Paths.GENERAL_EXERCISES_UPPDATE)
+    @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
     public void updateExercise(GeneralExerciseRequest request) {
         generalExercisesService.updateExercises(request);
     }
