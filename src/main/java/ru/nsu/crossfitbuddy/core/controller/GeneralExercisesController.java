@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,7 +29,12 @@ public class GeneralExercisesController {
     public void setExercises(
             @ModelAttribute
             @Valid GeneralExerciseRequest request) {
-        generalExercisesService.setExercise(request);
+        generalExercisesService.createExercise(request);
+    }
+
+    @PutMapping(Paths.GENERAL_EXERCISES_UPPDATE)
+    public void updateExercise(GeneralExerciseRequest request) {
+        generalExercisesService.updateExercises(request);
     }
 
     @GetMapping(Paths.GENERAL_EXERCISES_GET_EQUIPMENTS)

@@ -43,7 +43,7 @@ public class GeneralExercisesService {
     private final ExercisesMetricsMapper exercisesMetricsMapper;
 
     @Transactional
-    public void setExercise(GeneralExerciseRequest request) {
+    public void createExercise(GeneralExerciseRequest request) {
 
         log.info("Запрос на сохранения упражнения с названием" + request.name());
 
@@ -52,6 +52,44 @@ public class GeneralExercisesService {
         log.warn("Валидация создания упражнения успешна" + request.name());
 
         var exercises = new GeneralExercises();
+
+        exerciseSetData(exercises, request);
+
+        generalExercisesRepository.save(exercises);
+
+    }
+
+    @Transactional
+    public void updateExercises(GeneralExerciseRequest request) {
+        if (request.id() == null) {
+            throw new IllegalArgumentException(
+                    "In exercises update request filde id must not be null");
+        }
+        var exercise = generalExercisesRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Exercise entity with id - " + request.id() + " not found"));
+
+        exerciseSetData(exercise, request);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GeneralExerciseResponse> getAllExercise() {
+        return generalExerciseMapper.toResponseList(generalExercisesRepository.findAll());
+
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExercisesMetricsResponse> getAllMetrics() {
+        return exercisesMetricsMapper.toResponseList(exerciseMetricRepository.findAll());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExerciseEquipmentResponse> getAllEquipments() {
+        return exerciseEquipmentMapper.toResponseList(exerciseEquipmentRepository.findAll());
+
+    }
+
+    private void exerciseSetData(GeneralExercises exercises, GeneralExerciseRequest request) {
         exercises.setName(request.name());
         exercises.setDescription(request.description());
         exercises.setCategory(request.category());
@@ -98,26 +136,6 @@ public class GeneralExercisesService {
 
         exercises.setExerciseEquipments(equipments);
         exercises.setExercisesMetrics(metrics);
-
-        generalExercisesRepository.save(exercises);
-
-    }
-
-    @Transactional(readOnly = true)
-    public List<GeneralExerciseResponse> getAllExercise() {
-        return generalExerciseMapper.toResponseList(generalExercisesRepository.findAll());
-
-    }
-
-    @Transactional(readOnly = true)
-    public List<ExercisesMetricsResponse> getAllMetrics() {
-        return exercisesMetricsMapper.toResponseList(exerciseMetricRepository.findAll());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ExerciseEquipmentResponse> getAllEquipments() {
-        return exerciseEquipmentMapper.toResponseList(exerciseEquipmentRepository.findAll());
-
     }
 
     private void requestValidate(GeneralExerciseRequest request) {
