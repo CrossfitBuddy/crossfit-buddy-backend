@@ -25,6 +25,26 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+    ResponseEntity<ErrorResponse> queryParameterValidation(HttpServletRequest request) {
+        return error(
+            HttpStatus.BAD_REQUEST,
+            "VALIDATION_ERROR",
+            "Недопустимое значение параметра запроса.",
+            request
+        );
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ErrorResponse> queryParameterTypeMismatch(HttpServletRequest request) {
+        return error(
+            HttpStatus.BAD_REQUEST,
+            "VALIDATION_ERROR",
+            "Недопустимое значение параметра запроса.",
+            request
+        );
+    }
+
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     ResponseEntity<ErrorResponse> uploadTooLarge(HttpServletRequest request) {
         return error(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE", "Avatar must not exceed 5 MB.", request);
