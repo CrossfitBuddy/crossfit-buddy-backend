@@ -7,7 +7,7 @@ create table if not exists workout_format
     interval_required   boolean not null
 );
 
-insert into format_type (type, name, description, duration_required, interval_required)
+insert into workout_format (type, name, description, duration_required, interval_required)
 values
     (
         'EMOM',
