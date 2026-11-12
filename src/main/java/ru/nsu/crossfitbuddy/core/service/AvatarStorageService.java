@@ -23,48 +23,46 @@ public class AvatarStorageService {
     private String bucketName;
 
     public String upload(UUID userId, MultipartFile file) {
-        String objectKey = "avatars/" + userId + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String objectKey = "avatars/" + userId + "/" + UUID.randomUUID() + "_"
+                + file.getOriginalFilename();
         try {
             minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .stream(file.getInputStream(), file.getSize(), -1L)
-                    .contentType(file.getContentType())
-                    .build()
-            );
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .stream(file.getInputStream(), file.getSize(), -1L)
+                            .contentType(file.getContentType())
+                            .build());
             return objectKey;
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to upload avatar to MinIO: " + e.getMessage());
+                    "Failed to upload avatar to MinIO: " + e.getMessage());
         }
     }
 
     public void delete(String objectKey) {
         try {
             minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .build()
-            );
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .build());
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to delete avatar from MinIO: " + e.getMessage());
+                    "Failed to delete avatar from MinIO: " + e.getMessage());
         }
     }
 
     public byte[] download(String objectKey) {
         try (var stream = minioClient.getObject(
-            GetObjectArgs.builder()
-                .bucket(bucketName)
-                .object(objectKey)
-                .build()
-        )) {
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectKey)
+                        .build())) {
             return stream.readAllBytes();
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to download avatar from MinIO: " + e.getMessage());
+                    "Failed to download avatar from MinIO: " + e.getMessage());
         }
     }
 }

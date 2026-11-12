@@ -28,6 +28,9 @@ spring:
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
+    templates:
+      emailConfirm: mail/emailConfirm
+      passwordRecovery: mail/passwordRecovery
     protocol: smtp
     properties:
       mail:
@@ -38,7 +41,6 @@ spring:
           auth: false
           starttls:
             enable: false
-
 
 server:
   port: ${APP_PORT:8080}
@@ -57,7 +59,6 @@ management:
       show-details: never
       probes:
         enabled: true
-
 
 app:
   frontend:
