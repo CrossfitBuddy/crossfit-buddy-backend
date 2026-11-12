@@ -6,3 +6,4 @@ target/
 *.log
 data/
 !.mvn/wrapper/maven-wrapper.properties
+.editorconfig
