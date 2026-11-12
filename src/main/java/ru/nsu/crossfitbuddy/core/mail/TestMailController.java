@@ -24,7 +24,8 @@ public class TestMailController {
         try {
 
             mailService.sendHtml(
-                    mailCreator.getPasswordRecoveryMessage(LocalDateTime.now(), "12345",
+                    mailCreator.getEmailConfirmMessage(LocalDateTime.now(),
+                            "https://www.google.com/",
                             "sdf@sdfs.df"));
         } catch (MessagingException e) {
 
