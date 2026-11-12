@@ -1,13 +1,13 @@
-create table if not exists format_type
+create table if not exists workout_format
 (
-    code                varchar(32) primary key,
+    type                varchar(32) primary key,
     name                varchar(255) not null,
     description         text not null,
     duration_required   boolean not null,
     interval_required   boolean not null
 );
 
-insert into format_type (code, name, description, duration_required, interval_required)
+insert into format_type (type, name, description, duration_required, interval_required)
 values
     (
         'EMOM',
@@ -37,4 +37,4 @@ values
         true,
         true
     )
-on conflict (code) do nothing;
+on conflict (type) do nothing;
