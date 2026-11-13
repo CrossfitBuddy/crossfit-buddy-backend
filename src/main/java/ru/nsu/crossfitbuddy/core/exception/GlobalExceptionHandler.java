@@ -1,5 +1,6 @@
 package ru.nsu.crossfitbuddy.core.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.validation.ConstraintViolationException;
@@ -17,6 +18,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.nsu.crossfitbuddy.core.dto.response.ErrorResponse;
+import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -27,12 +29,14 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     ResponseEntity<ErrorResponse> uploadTooLarge(HttpServletRequest request) {
-        return error(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE", "Avatar must not exceed 5 MB.", request);
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
+                "Avatar must not exceed 5 MB.", request);
     }
 
     @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
     ResponseEntity<ErrorResponse> missingPart(HttpServletRequest request) {
-        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "The file part is required.", request);
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "The file part is required.",
+                request);
     }
 
     @ExceptionHandler(ApiException.class)
@@ -41,79 +45,87 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    ResponseEntity<ErrorResponse> authentication(AuthenticationException exception, HttpServletRequest request) {
-        String code = exception instanceof DisabledException ? "ACCOUNT_DISABLED" : "INVALID_CREDENTIALS";
-        String message = exception instanceof DisabledException ? "Your account is blocked. Contact an administrator."
-            : "Invalid email or password.";
+    ResponseEntity<ErrorResponse> authentication(AuthenticationException exception,
+            HttpServletRequest request) {
+        String code = exception instanceof DisabledException ? "ACCOUNT_DISABLED"
+                : "INVALID_CREDENTIALS";
+        String message = exception instanceof DisabledException
+                ? "Your account is blocked. Contact an administrator."
+                : "Invalid email or password.";
         return error(HttpStatus.UNAUTHORIZED, code, message, request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    ResponseEntity<ErrorResponse> forbidden(AccessDeniedException exception, HttpServletRequest request) {
-        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "You do not have permission to perform this action.",
-            request);
+    ResponseEntity<ErrorResponse> forbidden(AccessDeniedException exception,
+            HttpServletRequest request) {
+        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED",
+                "You do not have permission to perform this action.",
+                request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ErrorResponse> malformed(HttpMessageNotReadableException exception, HttpServletRequest request) {
+    ResponseEntity<ErrorResponse> malformed(HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST",
-            "The request contains malformed JSON or an invalid field value.", request);
+                "The request contains malformed JSON or an invalid field value.", request);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     ResponseEntity<ErrorResponse> methodNotAllowed(HttpRequestMethodNotSupportedException exception,
-        HttpServletRequest request) {
+            HttpServletRequest request) {
         return error(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
-            "The HTTP method is not supported for this endpoint.", request);
+                "The HTTP method is not supported for this endpoint.", request);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    ResponseEntity<ErrorResponse> concurrentUpdate(OptimisticLockingFailureException exception, HttpServletRequest request) {
+    ResponseEntity<ErrorResponse> concurrentUpdate(OptimisticLockingFailureException exception,
+            HttpServletRequest request) {
         return error(HttpStatus.CONFLICT, "CONCURRENT_UPDATE",
-            "The data was changed by another request. Please try again.", request);
+                "The data was changed by another request. Please try again.", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ErrorResponse> validation(MethodArgumentNotValidException exception, HttpServletRequest request) {
+    ResponseEntity<ErrorResponse> validation(MethodArgumentNotValidException exception,
+            HttpServletRequest request) {
         String message = exception.getBindingResult()
-            .getFieldErrors()
-            .stream()
-            .sorted(Comparator
-                .comparingInt(GlobalExceptionHandler::validationPriority)
-                .thenComparing(FieldError::getField)
-                .thenComparing(FieldError::getDefaultMessage, Comparator.nullsLast(Comparator.naturalOrder())))
-            .findFirst()
-            .map(error -> error.getField() + ": " + error.getDefaultMessage())
-            .orElse("The request contains invalid data.");
+                .getFieldErrors()
+                .stream()
+                .sorted(Comparator
+                        .comparingInt(GlobalExceptionHandler::validationPriority)
+                        .thenComparing(FieldError::getField)
+                        .thenComparing(FieldError::getDefaultMessage,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                .findFirst()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .orElse("The request contains invalid data.");
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<ErrorResponse> handleConstraintViolationException(
-        ConstraintViolationException exception,
-        HttpServletRequest request
-    ) {
+            ConstraintViolationException exception,
+            HttpServletRequest request) {
         String message = exception.getConstraintViolations()
-            .stream()
-            .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
-            .collect(Collectors.joining("; "));
+                .stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .collect(Collectors.joining("; "));
 
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, request);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    ResponseEntity<ErrorResponse> handleEntityNotFoundException(
+            EntityNotFoundException exception,
+            HttpServletRequest request) {
+        return error(HttpStatus.BAD_REQUEST, "ENTITY_NOT_FOUND", exception.getMessage(), request);
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorResponse> unexpected(Exception exception, HttpServletRequest request) {
         log.error("Unhandled exception", exception);
 
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred.", request);
-    }
-
-    @ExceptionHandler(ServiceException.class)
-    ResponseEntity<ErrorResponse> handleDuplicateEquipmentsNameExeption(
-            ServiceException exception,
-            HttpServletRequest request) {
-        return error(exception.getHttpStatus(), "VALIDATION_ERROR", exception.getMessage(),
-                request);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                "An unexpected error occurred.", request);
     }
 
     private static int validationPriority(FieldError fieldError) {
@@ -121,8 +133,10 @@ public class GlobalExceptionHandler {
         return "NotBlank".equals(code) || "NotNull".equals(code) ? 0 : 1;
     }
 
-    private ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message, HttpServletRequest request) {
+    private ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message,
+            HttpServletRequest request) {
         return ResponseEntity.status(status)
-            .body(new ErrorResponse(Instant.now(), status.value(), code, message, request.getRequestURI()));
+                .body(new ErrorResponse(Instant.now(), status.value(), code, message,
+                        request.getRequestURI()));
     }
 }

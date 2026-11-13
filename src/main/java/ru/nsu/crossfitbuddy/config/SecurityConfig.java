@@ -39,23 +39,8 @@ import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
 public class SecurityConfig {
 
     private static final String[] ENDPOINTS_INFRASTRUCTURE = {
-<<<<<<< HEAD
             InfraPaths.ACTUATOR_HEALTH,
             InfraPaths.ACTUATOR_HEALTH + "/**"
-=======
-            "/actuator/health",
-            "/actuator/health/**"
-    };
-
-    private static final String[] ENDPOINTS_WHITELIST = {
-            "/actuator/health",
-            "/actuator/health/**",
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/password/**",
-            "/send-email",
-            "/v1/general-exercises/**" // Временно
->>>>>>> 409b648 ([СВ-18699] реализован сервис и исправленны entity)
     };
 
     private static final String[] ENDPOINTS_SWAGGER = {
@@ -67,7 +52,8 @@ public class SecurityConfig {
     };
 
     private static final String[] ENDPOINTS_WHITELIST = {
-            Paths.EMAIL
+            Paths.EMAIL,
+            Paths.GENERAL_EXERCISES + "/**"
     };
 
     private static final String[] ENDPOINTS_PUBLIC_AUTH = {
