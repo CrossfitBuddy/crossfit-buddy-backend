@@ -2,6 +2,7 @@ package ru.nsu.crossfitbuddy.core.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +26,7 @@ import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 public class GeneralExercisesController {
     private final GeneralExercisesService generalExercisesService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(Paths.GENERAL_EXERCISES_SET)
     public void setExercises(
             @ModelAttribute
@@ -32,6 +34,7 @@ public class GeneralExercisesController {
         generalExercisesService.createExercise(request);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
     public void updateExercise(GeneralExerciseRequest request) {
         generalExercisesService.updateExercises(request);
