@@ -21,12 +21,12 @@ import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 
 @RestController
 @RequestMapping(Paths.GENERAL_EXERCISES)
-// @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class GeneralExercisesController {
     private final GeneralExercisesService generalExercisesService;
 
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(Paths.GENERAL_EXERCISES_SET)
     public void setExercises(
             @ModelAttribute
@@ -34,7 +34,7 @@ public class GeneralExercisesController {
         generalExercisesService.createExercise(request);
     }
 
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
     public void updateExercise(GeneralExerciseRequest request) {
         generalExercisesService.updateExercises(request);
