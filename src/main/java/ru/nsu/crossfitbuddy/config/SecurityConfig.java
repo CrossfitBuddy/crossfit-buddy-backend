@@ -53,7 +53,6 @@ public class SecurityConfig {
 
     private static final String[] ENDPOINTS_WHITELIST = {
             Paths.EMAIL,
-            Paths.GENERAL_EXERCISES + "/**"
     };
 
     private static final String[] ENDPOINTS_PUBLIC_AUTH = {
