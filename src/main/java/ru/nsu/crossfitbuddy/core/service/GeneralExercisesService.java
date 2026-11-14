@@ -42,21 +42,26 @@ public class GeneralExercisesService {
     private final ExerciseEquipmentMapper exerciseEquipmentMapper;
     private final ExercisesMetricsMapper exercisesMetricsMapper;
 
+    private final ExerciseFileStorageService exerciseFileStorageService;
+
     @Transactional
     public void createExercise(GeneralExerciseRequest request) {
 
-        log.info("Запрос на сохранения упражнения с названием" + request.name());
+        log.info("Запрос на сохранения упражнения с названием " + request.name());
 
         requestValidate(request);
 
-        log.warn("Валидация создания упражнения успешна" + request.name());
+        log.warn("Валидация создания упражнения успешна " + request.name());
 
         var exercises = new GeneralExercises();
 
         exerciseSetData(exercises, request);
 
-        generalExercisesRepository.save(exercises);
+        exercises = generalExercisesRepository.save(exercises);
 
+        log.warn("Сохранение медиа " + request.name());
+
+        saveMedia(exercises, request);
     }
 
     @Transactional
@@ -136,6 +141,18 @@ public class GeneralExercisesService {
 
         exercises.setExerciseEquipments(equipments);
         exercises.setExercisesMetrics(metrics);
+    }
+
+    private void saveMedia(GeneralExercises exercises, GeneralExerciseRequest request) {
+        if (exercises.getId() == null) {
+            return;
+        }
+        if (request.image() != null) {
+            exerciseFileStorageService.uploadImage(exercises.getId(), request.image());
+        }
+        if (request.videoExample() != null) {
+            exerciseFileStorageService.uploadVideo(exercises.getId(), request.videoExample());
+        }
     }
 
     private void requestValidate(GeneralExerciseRequest request) {
