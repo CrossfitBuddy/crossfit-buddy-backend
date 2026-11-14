@@ -28,7 +28,7 @@ public class ExerciseEquipment {
     @Column(nullable = false)
     private String name;
 
-    private String imageUrl;
+    private String imageKey;
 
     @OneToMany(mappedBy = "exerciseEquipment", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<ExerciseEquipmentProperties> equipmentProperties;

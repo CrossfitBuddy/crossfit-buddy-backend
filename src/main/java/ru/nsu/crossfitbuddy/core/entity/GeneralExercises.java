@@ -38,8 +38,11 @@ public class GeneralExercises {
     @Column(nullable = false)
     private ExerciseCategory category;
 
-    @Column(name = "video_url", length = 500)
-    private String videoUrl;
+    @Column(name = "video_key", length = 500)
+    private String videoKey;
+
+    @Column(name = "img_key", length = 500)
+    private String imgKey;
 
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(name = "exercises_equipments", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_equipment_id"))
