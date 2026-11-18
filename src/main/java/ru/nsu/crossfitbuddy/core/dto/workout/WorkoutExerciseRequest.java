@@ -17,10 +17,7 @@ import ru.nsu.crossfitbuddy.core.dto.workout.json.WholeNumberDeserializer;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Schema(
-    additionalProperties = Schema.AdditionalPropertiesValue.FALSE,
-    description = "A separate exercise occurrence. Metrics are optional."
-)
+@Schema(additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
 public record WorkoutExerciseRequest(
     @NotNull
     UUID exerciseId,
@@ -36,7 +33,7 @@ public record WorkoutExerciseRequest(
     @Positive
     @Digits(integer = 9, fraction = 20)
     @JsonDeserialize(using = MinutesDeserializer.class)
-    @Schema(description = "Exercise duration in minutes; fractional values are supported")
+
     BigDecimal durationMinutes,
 
     @Positive

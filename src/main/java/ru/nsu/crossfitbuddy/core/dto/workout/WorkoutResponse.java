@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Schema(description = "Workout creation response and proposed detail contract")
 public record WorkoutResponse(
     UUID id,
     String name,

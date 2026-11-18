@@ -24,19 +24,16 @@ public record WorkoutStageRequest(
     @NotNull
     @Positive
     @JsonDeserialize(using = WholeNumberDeserializer.class)
-    @Schema(description = "Existing stage_format dictionary ID")
+
     Integer stageFormatId,
 
     @NotNull
-    @Schema(description = "Existing workout_format.type")
+
     WorkoutFormatType format,
 
     @NotNull
     @JsonDeserialize(contentUsing = MinutesDeserializer.class)
-    @Schema(
-        description = "Format parameters in minutes. Required and allowed keys follow workout_format flags.",
-        example = "{\"duration\":10,\"interval\":0.5}"
-    )
+    @Schema(example = "{\"duration\":10,\"interval\":0.5}")
     Map<String, @NotNull @Positive @Digits(integer = 9, fraction = 20) BigDecimal> params,
 
     @NotEmpty

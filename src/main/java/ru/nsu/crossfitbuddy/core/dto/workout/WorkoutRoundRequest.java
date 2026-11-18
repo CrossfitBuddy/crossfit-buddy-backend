@@ -20,7 +20,7 @@ public record WorkoutRoundRequest(
     @NotNull
     @Positive
     @JsonDeserialize(using = WholeNumberDeserializer.class)
-    @Schema(description = "Number of repetitions of the entire round", example = "1")
+    @Schema(example = "1")
     Integer repeatCount,
 
     @NotEmpty
