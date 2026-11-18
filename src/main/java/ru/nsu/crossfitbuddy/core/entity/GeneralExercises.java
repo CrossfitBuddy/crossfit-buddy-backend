@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,11 +39,13 @@ public class GeneralExercises {
     @Column(nullable = false)
     private ExerciseCategory category;
 
-    @Column(name = "video_key", length = 500)
-    private String videoKey;
+    @ManyToOne
+    @JoinColumn
+    private S3File image;
 
-    @Column(name = "img_key", length = 500)
-    private String imgKey;
+    @ManyToOne
+    @JoinColumn
+    private S3File video;
 
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(name = "exercises_equipments", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_equipment_id"))

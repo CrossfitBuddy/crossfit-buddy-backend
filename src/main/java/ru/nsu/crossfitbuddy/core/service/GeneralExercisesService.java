@@ -1,10 +1,13 @@
 package ru.nsu.crossfitbuddy.core.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +24,9 @@ import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
 import ru.nsu.crossfitbuddy.core.entity.GeneralExercises;
+import ru.nsu.crossfitbuddy.core.entity.S3File;
+import ru.nsu.crossfitbuddy.core.entity.S3FileStatus;
+import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateMetricsNameExeption;
 import ru.nsu.crossfitbuddy.core.mapper.ExerciseEquipmentMapper;
@@ -29,6 +35,7 @@ import ru.nsu.crossfitbuddy.core.mapper.GeneralExerciseMapper;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseEquipmentRepository;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseMetricRepository;
 import ru.nsu.crossfitbuddy.core.repository.GeneralExercisesRepository;
+import ru.nsu.crossfitbuddy.core.repository.S3FileRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -37,12 +44,14 @@ public class GeneralExercisesService {
     private final GeneralExercisesRepository generalExercisesRepository;
     private final ExerciseEquipmentRepository exerciseEquipmentRepository;
     private final ExerciseMetricRepository exerciseMetricRepository;
+    private final S3FileRepository s3FileRepository;
 
     private final GeneralExerciseMapper generalExerciseMapper;
     private final ExerciseEquipmentMapper exerciseEquipmentMapper;
     private final ExercisesMetricsMapper exercisesMetricsMapper;
 
     private final ExerciseFileStorageService exerciseFileStorageService;
+    private final S3FilesService s3FilesService;
 
     @Transactional
     public void createExercise(GeneralExerciseRequest request) {
@@ -57,11 +66,12 @@ public class GeneralExercisesService {
 
         exerciseSetData(exercises, request);
 
+        s3FileRepository.findById(request.imageFileId());
+
+        log.warn("Подтверждение медиа файлов управжения " + request.name());
+        setMediaReady(request);
+
         exercises = generalExercisesRepository.save(exercises);
-
-        log.warn("Сохранение медиа " + request.name());
-
-        saveMedia(exercises, request);
     }
 
     @Transactional
@@ -79,6 +89,7 @@ public class GeneralExercisesService {
 
     @Transactional(readOnly = true)
     public List<GeneralExerciseResponse> getAllExercise() {
+        var exercises = generalExercisesRepository.findAll();
         return generalExerciseMapper.toResponseList(generalExercisesRepository.findAll());
 
     }
@@ -94,10 +105,23 @@ public class GeneralExercisesService {
 
     }
 
+    private void setMediaReady(GeneralExerciseRequest request) {
+        request.exercisesEquipments().stream().forEach(
+                (equipment) -> s3FilesService.setMediaReadyIfNotNull(equipment.imageFileId()));
+    }
+
     private void exerciseSetData(GeneralExercises exercises, GeneralExerciseRequest request) {
         exercises.setName(request.name());
         exercises.setDescription(request.description());
         exercises.setCategory(request.category());
+        var image = s3FilesService.setMediaReadyIfNotNull(request.imageFileId());
+        if (!image.isEmpty()) {
+            exercises.setImage(image.get());
+        }
+        var video = s3FilesService.setMediaReadyIfNotNull(request.videoFileId());
+        if (!video.isEmpty()) {
+            exercises.setVideo(video.get());
+        }
 
         List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
             if (metric.id() != null) {
@@ -124,6 +148,8 @@ public class GeneralExercisesService {
                     var dbEquipment = new ExerciseEquipment();
 
                     dbEquipment.setName(equipment.name());
+                    dbEquipment.setImage(
+                            s3FilesService.setMediaReadyIfNotNull(equipment.imageFileId()).get());
 
                     List<ExerciseEquipmentProperties> properties = equipment.propertiesRequests()
                             .stream().map(property -> {
@@ -141,18 +167,6 @@ public class GeneralExercisesService {
 
         exercises.setExerciseEquipments(equipments);
         exercises.setExercisesMetrics(metrics);
-    }
-
-    private void saveMedia(GeneralExercises exercises, GeneralExerciseRequest request) {
-        if (exercises.getId() == null) {
-            return;
-        }
-        if (request.image() != null) {
-            exerciseFileStorageService.uploadImage(exercises.getId(), request.image());
-        }
-        if (request.videoExample() != null) {
-            exerciseFileStorageService.uploadVideo(exercises.getId(), request.videoExample());
-        }
     }
 
     private void requestValidate(GeneralExerciseRequest request) {

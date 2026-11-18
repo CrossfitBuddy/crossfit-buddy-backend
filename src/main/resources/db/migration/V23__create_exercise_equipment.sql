@@ -1,1 +1,1 @@
-create table exercise_equipment (id uuid not null, image_key varchar(500), name varchar(255) not null, primary key (id));
+create table exercise_equipment (id uuid not null, image_id uuid, name varchar(255) not null, primary key (id));

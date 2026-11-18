@@ -9,7 +9,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -28,7 +30,9 @@ public class ExerciseEquipment {
     @Column(nullable = false)
     private String name;
 
-    private String imageKey;
+    @ManyToOne
+    @JoinColumn
+    private S3File image;
 
     @OneToMany(mappedBy = "exerciseEquipment", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<ExerciseEquipmentProperties> equipmentProperties;
