@@ -15,5 +15,13 @@ public interface S3FileRepository extends JpaRepository<S3File, UUID> {
                 WHERE f.id = :id
                   AND (f.status <> 'PENDING' OR f.expireAt > CURRENT_TIMESTAMP)
             """)
-    public Optional<S3File> findByIdReady(@Param("id") UUID id);
+    public Optional<S3File> findByIdReadyAndNotExp(@Param("id") UUID id);
+
+    @Query("""
+                SELECT f FROM S3File f
+                WHERE f.id = :id
+                  AND (f.status = 'READY')
+            """)
+    public Optional<S3File> findByIdReadyOnly(@Param("id") UUID id);
+
 }

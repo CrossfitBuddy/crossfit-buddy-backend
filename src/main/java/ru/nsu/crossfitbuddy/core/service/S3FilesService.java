@@ -71,7 +71,7 @@ public class S3FilesService {
 
     public Optional<S3File> setMediaReadyIfNotNull(UUID fileId) {
         if (fileId != null) {
-            var file = s3FileRepository.findByIdReady(fileId)
+            var file = s3FileRepository.findByIdReadyAndNotExp(fileId)
                     .orElseThrow(
                             () -> new EntityNotFoundException(
                                     "Сущность файла c id " + fileId + " не найдена в базе"));
@@ -85,7 +85,7 @@ public class S3FilesService {
     }
 
     public S3DownloadURLDTO getDownloadLink(UUID fileId) {
-        var file = s3FileRepository.findByIdReady(fileId)
+        var file = s3FileRepository.findByIdReadyOnly(fileId)
                 .orElseThrow(
                         () -> new EntityNotFoundException("Файл с id " + fileId + " не найден"));
         var objectKey = createObjectKey(fileId, file.getFileName(), file.getType());

@@ -3,6 +3,7 @@ package ru.nsu.crossfitbuddy.core.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
 import ru.nsu.crossfitbuddy.core.entity.GeneralExercises;
+import ru.nsu.crossfitbuddy.core.entity.S3File;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateMetricsNameExeption;
 import ru.nsu.crossfitbuddy.core.mapper.ExerciseEquipmentMapper;
@@ -29,7 +31,6 @@ import ru.nsu.crossfitbuddy.core.mapper.GeneralExerciseMapper;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseEquipmentRepository;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseMetricRepository;
 import ru.nsu.crossfitbuddy.core.repository.GeneralExercisesRepository;
-import ru.nsu.crossfitbuddy.core.repository.S3FileRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +39,6 @@ public class GeneralExercisesService {
     private final GeneralExercisesRepository generalExercisesRepository;
     private final ExerciseEquipmentRepository exerciseEquipmentRepository;
     private final ExerciseMetricRepository exerciseMetricRepository;
-    private final S3FileRepository s3FileRepository;
 
     private final GeneralExerciseMapper generalExerciseMapper;
     private final ExerciseEquipmentMapper exerciseEquipmentMapper;
@@ -58,11 +58,6 @@ public class GeneralExercisesService {
         var exercises = new GeneralExercises();
 
         exerciseSetData(exercises, request);
-
-        s3FileRepository.findById(request.imageFileId());
-
-        log.warn("Подтверждение медиа файлов управжения " + request.name());
-        setMediaReady(request);
 
         exercises = generalExercisesRepository.save(exercises);
     }
@@ -97,23 +92,12 @@ public class GeneralExercisesService {
 
     }
 
-    private void setMediaReady(GeneralExerciseRequest request) {
-        request.exercisesEquipments().stream().forEach(
-                (equipment) -> s3FilesService.setMediaReadyIfNotNull(equipment.imageFileId()));
-    }
-
     private void exerciseSetData(GeneralExercises exercises, GeneralExerciseRequest request) {
         exercises.setName(request.name());
         exercises.setDescription(request.description());
         exercises.setCategory(request.category());
-        var image = s3FilesService.setMediaReadyIfNotNull(request.imageFileId());
-        if (!image.isEmpty()) {
-            exercises.setImage(image.get());
-        }
-        var video = s3FilesService.setMediaReadyIfNotNull(request.videoFileId());
-        if (!video.isEmpty()) {
-            exercises.setVideo(video.get());
-        }
+        exercises.setImage(getMedia(request.imageFileId()));
+        exercises.setVideo(getMedia(request.videoFileId()));
 
         List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
             if (metric.id() != null) {
@@ -140,8 +124,7 @@ public class GeneralExercisesService {
                     var dbEquipment = new ExerciseEquipment();
 
                     dbEquipment.setName(equipment.name());
-                    dbEquipment.setImage(
-                            s3FilesService.setMediaReadyIfNotNull(equipment.imageFileId()).get());
+                    dbEquipment.setImage(getMedia(equipment.imageFileId()));
 
                     List<ExerciseEquipmentProperties> properties = equipment.propertiesRequests()
                             .stream().map(property -> {
@@ -170,6 +153,17 @@ public class GeneralExercisesService {
             log.warn("Названия метрик дублируются");
             throw new DuplicateMetricsNameExeption();
         }
+    }
+
+    private S3File getMedia(UUID fileId) {
+        var file = s3FilesService.setMediaReadyIfNotNull(fileId);
+        if (file.isEmpty()) {
+            return null; // Возвращаем null так как если файл и был сохранен то нужно его затереть
+                         // так как в дтошек id
+                         // не указан
+        }
+        return file.get();
+
     }
 
     private boolean isHaveDuplicateMetricsName(List<ExercisesMetricsRequest> requests) {
