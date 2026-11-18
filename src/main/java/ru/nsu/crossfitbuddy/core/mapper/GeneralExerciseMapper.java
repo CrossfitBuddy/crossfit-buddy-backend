@@ -11,8 +11,8 @@ import ru.nsu.crossfitbuddy.core.entity.GeneralExercises;
 @Mapper(config = CentralMapperConfig.class, uses = ExerciseEquipmentMapper.class)
 public interface GeneralExerciseMapper {
 
-    @Mapping(target = "image", ignore = true)
-    @Mapping(target = "videoExample", ignore = true)
+    @Mapping(source = "image.id", target = "imageFileId")
+    @Mapping(source = "video.id", target = "videoFileId")
     GeneralExerciseResponse toResponse(GeneralExercises generalExercises);
 
     List<GeneralExerciseResponse> toResponseList(List<GeneralExercises> generalExercises);

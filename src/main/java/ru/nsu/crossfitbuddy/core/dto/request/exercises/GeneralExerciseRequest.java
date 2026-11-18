@@ -3,8 +3,6 @@ package ru.nsu.crossfitbuddy.core.dto.request.exercises;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,8 +20,6 @@ public record GeneralExerciseRequest(
 
         @NotNull(message = "Необходимо указать категорию упражнения") ExerciseCategory category,
 
-        MultipartFile image,
-        MultipartFile videoExample
-
-) {
+        UUID imageFileId,
+        UUID videoFileId) {
 }

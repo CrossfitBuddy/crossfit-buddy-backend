@@ -28,7 +28,7 @@ public class ExerciseFileStorageService {
     }
 
     public String uploadImage(UUID exerciseId, MultipartFile file) {
-        String objectKey = "video/" + exerciseId + "/" + UUID.randomUUID() + "_"
+        String objectKey = "image/" + exerciseId + "/" + UUID.randomUUID() + "_"
                 + file.getOriginalFilename();
         try {
             minioStorageService.upload(objectKey, file);

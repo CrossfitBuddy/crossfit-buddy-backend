@@ -11,7 +11,7 @@ import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 @Mapper(config = CentralMapperConfig.class, uses = PropertiesRequestMapper.class)
 public interface ExerciseEquipmentMapper {
 
-    @Mapping(target = "image", ignore = true)
+    @Mapping(source = "image.id", target = "imageFileId")
     ExerciseEquipmentResponse toResponse(ExerciseEquipment exerciseEquipment);
 
     List<ExerciseEquipmentResponse> toResponseList(List<ExerciseEquipment> exerciseEquipment);
