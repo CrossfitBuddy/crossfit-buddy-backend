@@ -1,13 +1,10 @@
 package ru.nsu.crossfitbuddy.core.service;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +21,6 @@ import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
 import ru.nsu.crossfitbuddy.core.entity.GeneralExercises;
-import ru.nsu.crossfitbuddy.core.entity.S3File;
-import ru.nsu.crossfitbuddy.core.entity.S3FileStatus;
-import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateMetricsNameExeption;
 import ru.nsu.crossfitbuddy.core.mapper.ExerciseEquipmentMapper;
@@ -50,7 +44,6 @@ public class GeneralExercisesService {
     private final ExerciseEquipmentMapper exerciseEquipmentMapper;
     private final ExercisesMetricsMapper exercisesMetricsMapper;
 
-    private final ExerciseFileStorageService exerciseFileStorageService;
     private final S3FilesService s3FilesService;
 
     @Transactional
@@ -89,7 +82,6 @@ public class GeneralExercisesService {
 
     @Transactional(readOnly = true)
     public List<GeneralExerciseResponse> getAllExercise() {
-        var exercises = generalExercisesRepository.findAll();
         return generalExerciseMapper.toResponseList(generalExercisesRepository.findAll());
 
     }
