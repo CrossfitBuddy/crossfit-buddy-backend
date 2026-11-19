@@ -1,6 +1,3 @@
-drop table complex_format;
-
-
 begin;
 lock table stage, complex_format in access exclusive mode;
 
