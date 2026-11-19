@@ -2,6 +2,7 @@ package ru.nsu.crossfitbuddy.core.controller;
 
 import java.util.UUID;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import ru.nsu.crossfitbuddy.core.dto.request.S3UploadURLRequestDTO;
 import ru.nsu.crossfitbuddy.core.dto.response.S3DownloadURLDTO;
@@ -18,6 +20,7 @@ import ru.nsu.crossfitbuddy.core.service.S3FilesService;
 @RestController
 @RequestMapping(Paths.FILES)
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class S3FilesController {
     private final S3FilesService s3FilesService;
 
