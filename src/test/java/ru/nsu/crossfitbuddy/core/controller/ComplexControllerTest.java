@@ -9,12 +9,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.nsu.crossfitbuddy.core.dto.request.UpdateWorkoutFormatRequest;
-import ru.nsu.crossfitbuddy.core.dto.response.WorkoutFormatResponse;
-import ru.nsu.crossfitbuddy.core.entity.WorkoutFormatType;
+import ru.nsu.crossfitbuddy.core.dto.request.UpdateComplexFormatRequest;
+import ru.nsu.crossfitbuddy.core.dto.response.ComplexFormatResponse;
+import ru.nsu.crossfitbuddy.core.entity.ComplexFormatType;
 import ru.nsu.crossfitbuddy.core.security.JwtAuthenticationFilter;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
-import ru.nsu.crossfitbuddy.core.service.WorkoutFormatService;
+import ru.nsu.crossfitbuddy.core.service.ComplexFormatService;
 
 import java.util.List;
 
@@ -28,12 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WorkoutController.class)
+@WebMvcTest(ComplexController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class WorkoutControllerTest {
+class ComplexControllerTest {
 
-    private static final String FORMATS_URL = Paths.WORKOUTS + Paths.WORKOUTS_FORMATS;
-    private static final String FORMAT_BY_TYPE_URL = Paths.WORKOUTS + Paths.WORKOUTS_FORMATS_BY_TYPE;
+    private static final String FORMATS_URL = Paths.COMPLEX + Paths.COMPLEX_FORMATS;
+    private static final String FORMAT_BY_TYPE_URL = Paths.COMPLEX + Paths.COMPLEX_FORMATS_BY_TYPE;
 
     @Autowired
     private MockMvc mockMvc;
@@ -42,7 +42,7 @@ class WorkoutControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private WorkoutFormatService workoutFormatService;
+    private ComplexFormatService complexFormatService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -53,31 +53,27 @@ class WorkoutControllerTest {
     @AfterEach
     void tearDown() {
         verifyNoMoreInteractions(
-                workoutFormatService,
+                complexFormatService,
                 jwtService,
                 jwtAuthenticationFilter
         );
     }
 
     @Test
-    void getAllWorkoutFormats_shouldReturnOkAndList() throws Exception {
-        WorkoutFormatResponse emomResponse = new WorkoutFormatResponse(
-                WorkoutFormatType.EMOM,
+    void getAllComplexFormats_shouldReturnOkAndList() throws Exception {
+        ComplexFormatResponse emomResponse = new ComplexFormatResponse(
+                ComplexFormatType.EMOM,
                 "EMOM",
-                "Описание EMOM",
-                true,
-                false
+                "Описание EMOM"
         );
 
-        WorkoutFormatResponse amrapResponse = new WorkoutFormatResponse(
-                WorkoutFormatType.AMRAP,
+        ComplexFormatResponse amrapResponse = new ComplexFormatResponse(
+                ComplexFormatType.AMRAP,
                 "AMRAP",
-                "Описание AMRAP",
-                false,
-                false
+                "Описание AMRAP"
         );
 
-        when(workoutFormatService.getAll())
+        when(complexFormatService.getAll())
                 .thenReturn(List.of(emomResponse, amrapResponse));
 
         mockMvc.perform(get(FORMATS_URL)
@@ -88,18 +84,16 @@ class WorkoutControllerTest {
                 .andExpect(jsonPath("$[0].type").value("EMOM"))
                 .andExpect(jsonPath("$[0].name").value("EMOM"))
                 .andExpect(jsonPath("$[0].description").value("Описание EMOM"))
-                .andExpect(jsonPath("$[0].durationRequired").value(true))
-                .andExpect(jsonPath("$[0].intervalRequired").value(false))
                 .andExpect(jsonPath("$[1].type").value("AMRAP"))
                 .andExpect(jsonPath("$[1].name").value("AMRAP"))
                 .andExpect(jsonPath("$[1].description").value("Описание AMRAP"));
 
-        verify(workoutFormatService).getAll();
+        verify(complexFormatService).getAll();
     }
 
     @Test
-    void getAllWorkoutFormats_whenEmpty_shouldReturnOkAndEmptyList() throws Exception {
-        when(workoutFormatService.getAll())
+    void getAllComplexFormats_whenEmpty_shouldReturnOkAndEmptyList() throws Exception {
+        when(complexFormatService.getAll())
                 .thenReturn(List.of());
 
         mockMvc.perform(get(FORMATS_URL)
@@ -108,26 +102,24 @@ class WorkoutControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(workoutFormatService).getAll();
+        verify(complexFormatService).getAll();
     }
 
     @Test
-    void updateWorkoutFormatDescription_shouldReturnOkAndUpdatedResponse() throws Exception {
-        WorkoutFormatType type = WorkoutFormatType.EMOM;
+    void updateComplexFormatDescription_shouldReturnOkAndUpdatedResponse() throws Exception {
+        ComplexFormatType type = ComplexFormatType.EMOM;
         String newDescription = "Новое описание";
 
-        UpdateWorkoutFormatRequest request =
-                new UpdateWorkoutFormatRequest(newDescription);
+        UpdateComplexFormatRequest request =
+                new UpdateComplexFormatRequest(newDescription);
 
-        WorkoutFormatResponse response = new WorkoutFormatResponse(
+        ComplexFormatResponse response = new ComplexFormatResponse(
                 type,
                 "EMOM",
-                newDescription,
-                true,
-                false
+                newDescription
         );
 
-        when(workoutFormatService.updateDescription(type, newDescription))
+        when(complexFormatService.updateDescription(type, newDescription))
                 .thenReturn(response);
 
         mockMvc.perform(patch(FORMAT_BY_TYPE_URL, type)
@@ -137,31 +129,29 @@ class WorkoutControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.type").value("EMOM"))
                 .andExpect(jsonPath("$.name").value("EMOM"))
-                .andExpect(jsonPath("$.description").value(newDescription))
-                .andExpect(jsonPath("$.durationRequired").value(true))
-                .andExpect(jsonPath("$.intervalRequired").value(false));
+                .andExpect(jsonPath("$.description").value(newDescription));
 
-        verify(workoutFormatService).updateDescription(type, newDescription);
+        verify(complexFormatService).updateDescription(type, newDescription);
     }
 
     @Test
-    void updateWorkoutFormatDescription_whenDescriptionIsBlank_shouldReturnBadRequest() throws Exception {
-        WorkoutFormatType type = WorkoutFormatType.EMOM;
+    void updateComplexFormatDescription_whenDescriptionIsBlank_shouldReturnBadRequest() throws Exception {
+        ComplexFormatType type = ComplexFormatType.EMOM;
 
-        UpdateWorkoutFormatRequest request =
-                new UpdateWorkoutFormatRequest("   ");
+        UpdateComplexFormatRequest request =
+                new UpdateComplexFormatRequest("   ");
 
         mockMvc.perform(patch(FORMAT_BY_TYPE_URL, type)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(workoutFormatService);
+        verifyNoInteractions(complexFormatService);
     }
 
     @Test
-    void updateWorkoutFormatDescription_whenDescriptionIsNull_shouldReturnBadRequest() throws Exception {
-        WorkoutFormatType type = WorkoutFormatType.EMOM;
+    void updateComplexFormatDescription_whenDescriptionIsNull_shouldReturnBadRequest() throws Exception {
+        ComplexFormatType type = ComplexFormatType.EMOM;
 
         String body = """
                 {
@@ -174,6 +164,6 @@ class WorkoutControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(workoutFormatService);
+        verifyNoInteractions(complexFormatService);
     }
 }

@@ -11,14 +11,14 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.nsu.crossfitbuddy.config.SecurityConfig;
-import ru.nsu.crossfitbuddy.core.dto.request.UpdateWorkoutFormatRequest;
-import ru.nsu.crossfitbuddy.core.dto.response.WorkoutFormatResponse;
-import ru.nsu.crossfitbuddy.core.entity.WorkoutFormatType;
+import ru.nsu.crossfitbuddy.core.dto.request.UpdateComplexFormatRequest;
+import ru.nsu.crossfitbuddy.core.dto.response.ComplexFormatResponse;
+import ru.nsu.crossfitbuddy.core.entity.ComplexFormatType;
 import ru.nsu.crossfitbuddy.core.exception.SecurityErrorHandler;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.service.AccountDetailsService;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
-import ru.nsu.crossfitbuddy.core.service.WorkoutFormatService;
+import ru.nsu.crossfitbuddy.core.service.ComplexFormatService;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -26,17 +26,17 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WorkoutController.class)
+@WebMvcTest(ComplexController.class)
 @Import(SecurityConfig.class)
-class WorkoutControllerSecurityTest {
+class ComplexControllerSecurityTest {
 
-    private static final String PATH = Paths.WORKOUTS + Paths.WORKOUTS_FORMATS_BY_TYPE;
+    private static final String PATH = Paths.COMPLEX + Paths.COMPLEX_FORMATS_BY_TYPE;
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private WorkoutFormatService workoutFormatService;
+    private ComplexFormatService complexFormatService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -53,7 +53,7 @@ class WorkoutControllerSecurityTest {
     @AfterEach
     void tearDown() {
         verifyNoMoreInteractions(
-                workoutFormatService,
+                complexFormatService,
                 jwtService,
                 userAccountRepository,
                 securityErrorHandler,
@@ -63,38 +63,36 @@ class WorkoutControllerSecurityTest {
 
     @Test
     @WithMockUser(authorities = "ADMIN")
-    void adminCanUpdateWorkoutFormatDescription() throws Exception {
-        WorkoutFormatType type = WorkoutFormatType.EMOM;
+    void adminCanUpdateComplexFormatDescription() throws Exception {
+        ComplexFormatType type = ComplexFormatType.EMOM;
         String newDescription = "Новое описание";
 
-        UpdateWorkoutFormatRequest request =
-                new UpdateWorkoutFormatRequest(newDescription);
+        UpdateComplexFormatRequest request =
+                new UpdateComplexFormatRequest(newDescription);
 
-        WorkoutFormatResponse response = new WorkoutFormatResponse(
+        ComplexFormatResponse response = new ComplexFormatResponse(
                 type,
                 type.name(),
-                newDescription,
-                true,
-                false
+                newDescription
         );
 
-        when(workoutFormatService.updateDescription(type, newDescription)).thenReturn(response);
+        when(complexFormatService.updateDescription(type, newDescription)).thenReturn(response);
 
         mockMvc.perform(patch(PATH, type.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(workoutFormatService).updateDescription(type, request.description());
+        verify(complexFormatService).updateDescription(type, request.description());
     }
 
     @Test
     @WithMockUser(authorities = "USER")
-    void userCannotUpdateWorkoutFormatDescription() throws Exception {
-        UpdateWorkoutFormatRequest request =
-                new UpdateWorkoutFormatRequest("Новое описание");
+    void userCannotUpdateComplexFormatDescription() throws Exception {
+        UpdateComplexFormatRequest request =
+                new UpdateComplexFormatRequest("Новое описание");
 
-        WorkoutFormatType type = WorkoutFormatType.EMOM;
+        ComplexFormatType type = ComplexFormatType.EMOM;
 
         mockMvc.perform(patch(PATH, type.name())
                         .contentType(MediaType.APPLICATION_JSON)

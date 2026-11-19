@@ -7,8 +7,11 @@ import lombok.NoArgsConstructor;
 public final class Paths {
     // workouts
     public static final String WORKOUTS = "/v1/workouts";
-    public static final String WORKOUTS_FORMATS = "/formats";
-    public static final String WORKOUTS_FORMATS_BY_TYPE = "/{type}";
+
+    // complex
+    public static final String COMPLEX = "/v1/complex";
+    public static final String COMPLEX_FORMATS = "/formats";
+    public static final String COMPLEX_FORMATS_BY_TYPE = "/{type}";
 
 
     // auth

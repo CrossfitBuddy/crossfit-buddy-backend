@@ -1,5 +1,6 @@
 package ru.nsu.crossfitbuddy.core.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,21 +12,20 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "workout_format")
+@Table(name = "complex_format")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class WorkoutFormat {
+public class ComplexFormat {
     @Id
     @Enumerated(EnumType.STRING)
-    private WorkoutFormatType type;
+    @Column(length = 32)
+    private ComplexFormatType type;
 
+    @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, columnDefinition = "text")
     private String description;
-
-    private boolean durationRequired;
-
-    private boolean intervalRequired;
 }
