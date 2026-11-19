@@ -7,5 +7,5 @@ public enum ComplexFormatType {
 
     AMRAP,
 
-    TABATA
+    FREE
 }

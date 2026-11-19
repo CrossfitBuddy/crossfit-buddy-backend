@@ -11,8 +11,7 @@ alter table complex rename column format_id to workout_stage_id;
 alter table complex rename constraint stage_pkey to complex_pkey;
 alter table complex rename constraint stage_complex_format_type_fkey to complex_complex_format_type_fkey;
 alter table complex rename constraint stage_workout_id_fkey to complex_workout_id_fkey;
-alter table complex rename constraint stage_workout_stage_id_fkey to complex_workout_stage_id_fkey;
-alter table complex rename constraint stage_format_id_fkey to stage_workout_stage_id_fkey;
+alter table complex rename constraint stage_format_id_fkey to complex_workout_stage_id_fkey;
 
 
 alter table stage_round rename to complex_round;
