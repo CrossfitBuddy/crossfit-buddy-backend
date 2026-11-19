@@ -26,7 +26,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ComplexController.class)
+@WebMvcTest(controllers = ComplexController.class,
+        properties = "app.jwt.secret=test-secret-test-secret-test-secret-32")
 @Import(SecurityConfig.class)
 class ComplexControllerSecurityTest {
 
