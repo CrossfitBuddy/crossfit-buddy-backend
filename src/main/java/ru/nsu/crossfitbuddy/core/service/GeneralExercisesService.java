@@ -2,6 +2,7 @@ package ru.nsu.crossfitbuddy.core.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import ru.nsu.crossfitbuddy.core.dto.request.exercises.EquipmentPropertiesRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.exercises.ExerciseEquipmentRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.exercises.ExercisesMetricsRequest;
 import ru.nsu.crossfitbuddy.core.dto.request.exercises.GeneralExerciseRequest;
@@ -68,11 +70,7 @@ public class GeneralExercisesService {
             throw new IllegalArgumentException(
                     "In exercises update request filde id must not be null");
         }
-        var exercise = generalExercisesRepository.findById(request.id())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Exercise entity with id - " + request.id() + " not found"));
-
-        exerciseSetData(exercise, request);
+        exerciseUpdate(request);
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +90,59 @@ public class GeneralExercisesService {
 
     }
 
+    private void exerciseUpdate(GeneralExerciseRequest request) {
+
+        var exercise = generalExercisesRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Exercise entity with id - " + request.id() + " not found"));
+
+        var newMetricId = request.exercisesMetrics().stream()
+                .map(metric -> metric.id())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        exercise.getExercisesMetrics().removeIf(metric -> !newMetricId.contains(metric.getId()));
+
+        var newEquipmentId = request.exercisesEquipments().stream()
+                .map(metric -> metric.id())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        exercise.getExercisesMetrics().removeIf(metric -> !newEquipmentId.contains(metric.getId()));
+
+        List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
+            if (metric.id() != null) {
+                var dbMetric = exerciseMetricRepository.findById(metric.id())
+                        .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
+                return setMetricsData(dbMetric, metric);
+            }
+            var dbMetric = new ExercisesMetrics();
+            return setMetricsData(dbMetric, metric);
+        }).toList();
+
+        List<ExerciseEquipment> equipments = request.exercisesEquipments().stream()
+                .map(equipment -> {
+                    if (equipment.id() != null) {
+                        var dbEquipment = exerciseEquipmentRepository.findById(equipment.id())
+                                .orElseThrow(
+                                        () -> new EntityNotFoundException("Оборудование с id: "
+                                                + equipment.id() + " не найдено"));
+                        dbEquipment.getEquipmentProperties().clear();
+                        return updateEquipmentsData(dbEquipment, equipment);
+                    }
+                    var dbEquipment = new ExerciseEquipment();
+                    return updateEquipmentsData(dbEquipment, equipment);
+                }).toList();
+
+        exercise.setName(request.name());
+        exercise.setDescription(request.description());
+        exercise.setCategory(request.category());
+        exercise.setImage(getMedia(request.imageFileId()));
+        exercise.setVideo(getMedia(request.videoFileId()));
+
+        exercise.setExerciseEquipments(equipments);
+        exercise.setExercisesMetrics(metrics);
+    }
+
     private void exerciseSetData(GeneralExercises exercises, GeneralExerciseRequest request) {
         exercises.setName(request.name());
         exercises.setDescription(request.description());
@@ -104,12 +155,8 @@ public class GeneralExercisesService {
                 return exerciseMetricRepository.findById(metric.id())
                         .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
             }
-
             var dbMetric = new ExercisesMetrics();
-            dbMetric.setName(metric.name());
-            dbMetric.setMetricsValueType(metric.metricsValueType());
-            dbMetric.setUnit(metric.unit());
-            return dbMetric;
+            return setMetricsData(dbMetric, metric);
         }).toList();
 
         List<ExerciseEquipment> equipments = request.exercisesEquipments().stream()
@@ -120,24 +167,8 @@ public class GeneralExercisesService {
                                         () -> new EntityNotFoundException("Оборудование с id: "
                                                 + equipment.id() + " не найдено"));
                     }
-
                     var dbEquipment = new ExerciseEquipment();
-
-                    dbEquipment.setName(equipment.name());
-                    dbEquipment.setImage(getMedia(equipment.imageFileId()));
-
-                    List<ExerciseEquipmentProperties> properties = equipment.propertiesRequests()
-                            .stream().map(property -> {
-                                var dbProperty = new ExerciseEquipmentProperties();
-                                dbProperty.setMetricsValueType(property.metricsValueType());
-                                dbProperty.setName(property.name());
-                                dbProperty.setUnit(property.unit());
-                                dbProperty.setExerciseEquipment(dbEquipment);
-                                return dbProperty;
-
-                            }).toList();
-                    dbEquipment.setEquipmentProperties(properties);
-                    return dbEquipment;
+                    return setEquipmentsData(dbEquipment, equipment);
                 }).toList();
 
         exercises.setExerciseEquipments(equipments);
@@ -163,7 +194,55 @@ public class GeneralExercisesService {
                          // не указан
         }
         return file.get();
+    }
 
+    private ExercisesMetrics setMetricsData(ExercisesMetrics metric,
+            ExercisesMetricsRequest request) {
+        metric.setName(request.name());
+        metric.setMetricsValueType(request.metricsValueType());
+        metric.setUnit(request.unit());
+        return metric;
+    }
+
+    private ExerciseEquipment updateEquipmentsData(ExerciseEquipment equipment,
+            ExerciseEquipmentRequest request) {
+
+        var properties = prepareEquipmentData(equipment, request);
+        equipment.getEquipmentProperties().addAll(properties);
+        return equipment;
+    }
+
+    private ExerciseEquipment setEquipmentsData(ExerciseEquipment equipment,
+            ExerciseEquipmentRequest request) {
+        var properties = prepareEquipmentData(equipment, request);
+        equipment.setEquipmentProperties(properties);
+
+        return equipment;
+    }
+
+    private List<ExerciseEquipmentProperties> prepareEquipmentData(ExerciseEquipment equipment,
+            ExerciseEquipmentRequest request) {
+        equipment.setName(request.name());
+        equipment.setImage(getMedia(request.imageFileId()));
+
+        return getEquipmentPropertiesFromRequest(
+                request.propertiesRequests(),
+                equipment);
+
+    }
+
+    private List<ExerciseEquipmentProperties> getEquipmentPropertiesFromRequest(
+            List<EquipmentPropertiesRequest> request, ExerciseEquipment equipment) {
+        return request
+                .stream().map(property -> {
+                    var dbProperty = new ExerciseEquipmentProperties();
+                    dbProperty.setMetricsValueType(property.metricsValueType());
+                    dbProperty.setName(property.name());
+                    dbProperty.setUnit(property.unit());
+                    dbProperty.setExerciseEquipment(equipment);
+                    return dbProperty;
+
+                }).toList();
     }
 
     private boolean isHaveDuplicateMetricsName(List<ExercisesMetricsRequest> requests) {
