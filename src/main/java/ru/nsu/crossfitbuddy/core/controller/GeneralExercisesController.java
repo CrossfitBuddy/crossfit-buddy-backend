@@ -19,7 +19,7 @@ import ru.nsu.crossfitbuddy.core.dto.request.exercises.GeneralExerciseRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExerciseEquipmentResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
-import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
+import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 
 @RestController
@@ -27,37 +27,37 @@ import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 public class GeneralExercisesController {
-    private final GeneralExercisesService generalExercisesService;
+  private final GeneralExercisesService generalExercisesService;
 
-    @AdminAuthority
-    @PostMapping(Paths.GENERAL_EXERCISES_SET)
-    public void setExercises(
-            @ModelAttribute
-            @Valid GeneralExerciseRequest request,
-            @AuthenticationPrincipal AccountDetails userDetails) {
-        generalExercisesService.createExercise(request, userDetails);
-    }
+  @AdminAuthority
+  @PostMapping(Paths.GENERAL_EXERCISES_SET)
+  public void setExercises(
+      @ModelAttribute
+      @Valid GeneralExerciseRequest request,
+      @AuthenticationPrincipal CurrentUser userDetails) {
+    generalExercisesService.createExercise(request, userDetails);
+  }
 
-    @AdminAuthority
-    @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
-    public void updateExercise(@Valid GeneralExerciseRequest request,
-            @AuthenticationPrincipal AccountDetails userDetails) {
-        generalExercisesService.updateExercises(request);
-    }
+  @AdminAuthority
+  @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
+  public void updateExercise(@Valid GeneralExerciseRequest request,
+      @AuthenticationPrincipal CurrentUser userDetails) {
+    generalExercisesService.updateExercises(request);
+  }
 
-    @GetMapping(Paths.GENERAL_EXERCISES_GET_EQUIPMENTS)
-    public List<ExerciseEquipmentResponse> getAllEquipments() {
-        return generalExercisesService.getAllEquipments();
-    }
+  @GetMapping(Paths.GENERAL_EXERCISES_GET_EQUIPMENTS)
+  public List<ExerciseEquipmentResponse> getAllEquipments() {
+    return generalExercisesService.getAllEquipments();
+  }
 
-    @GetMapping(Paths.GENERAL_EXERCISES_GET_METRICS)
-    public List<ExercisesMetricsResponse> getAllMetrics() {
-        return generalExercisesService.getAllMetrics();
-    }
+  @GetMapping(Paths.GENERAL_EXERCISES_GET_METRICS)
+  public List<ExercisesMetricsResponse> getAllMetrics() {
+    return generalExercisesService.getAllMetrics();
+  }
 
-    @GetMapping(Paths.GENERAL_EXERCISES_GET_EXERCISES)
-    public List<GeneralExerciseResponse> getAllExercises() {
-        return generalExercisesService.getAllExercise();
-    }
+  @GetMapping(Paths.GENERAL_EXERCISES_GET_EXERCISES)
+  public List<GeneralExerciseResponse> getAllExercises() {
+    return generalExercisesService.getAllExercise();
+  }
 
 }

@@ -23,6 +23,7 @@ import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExerciseEquipmentRespons
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
 import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
+import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.entity.Exercise;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
@@ -42,6 +43,8 @@ import ru.nsu.crossfitbuddy.core.repository.GeneralExercisesRepository;
 @RequiredArgsConstructor
 @Slf4j
 public class GeneralExercisesService {
+  private final ProfileService profileService;
+
   private final GeneralExercisesRepository generalExercisesRepository;
   private final ExerciseEquipmentRepository exerciseEquipmentRepository;
   private final ExerciseMetricRepository exerciseMetricRepository;
@@ -53,7 +56,7 @@ public class GeneralExercisesService {
   private final S3FilesService s3FilesService;
 
   @Transactional
-  public Exercise createExercise(GeneralExerciseRequest request, AccountDetails account) {
+  public Exercise createExercise(GeneralExerciseRequest request, CurrentUser account) {
 
     log.info("Запрос на сохранения упражнения с названием " + request.name());
 
@@ -151,13 +154,14 @@ public class GeneralExercisesService {
   }
 
   private void exerciseSetData(Exercise exercise, GeneralExerciseRequest request,
-      AccountDetails accountDetails) {
+      CurrentUser user) {
+    var accountDetails = profileService.findProfileOrThrow(user.id(), true);
     exercise.setName(request.name());
     exercise.setDescription(request.description());
     exercise.setCategory(request.category());
     exercise.setImage(getMedia(request.imageFileId()));
     exercise.setVideo(getMedia(request.videoFileId()));
-    exercise.setCreatedBy(accountDetails.account());
+    exercise.setCreatedBy(accountDetails.getUser());
     exercise.setUpdatedAt(Instant.now());
     exercise.setCreatedAt(Instant.now());
 
