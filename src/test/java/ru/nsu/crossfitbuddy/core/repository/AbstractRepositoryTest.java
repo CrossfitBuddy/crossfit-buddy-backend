@@ -7,15 +7,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public abstract class AbstractRepositoryTest {
-    @Container
-    protected static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:17")
-                    .withDatabaseName("crossfitbuddy_test")
-                    .withUsername("crossfitbuddy_test")
-                    .withPassword("crossfitbuddy_test");
+    protected static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
+            "postgres:17")
+            .withDatabaseName("crossfitbuddy_test")
+            .withUsername("crossfitbuddy_test")
+            .withPassword("crossfitbuddy_test");
+    static {
+        POSTGRES.start();
+    }
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
