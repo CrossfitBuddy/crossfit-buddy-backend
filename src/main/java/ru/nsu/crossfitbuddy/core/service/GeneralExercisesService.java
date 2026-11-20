@@ -1,5 +1,7 @@
 package ru.nsu.crossfitbuddy.core.service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,10 +22,11 @@ import ru.nsu.crossfitbuddy.core.dto.request.exercises.GeneralExerciseRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExerciseEquipmentResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
+import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
+import ru.nsu.crossfitbuddy.core.entity.Exercise;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
-import ru.nsu.crossfitbuddy.core.entity.GeneralExercises;
 import ru.nsu.crossfitbuddy.core.entity.S3File;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateMetricsNameExeption;
@@ -49,7 +52,7 @@ public class GeneralExercisesService {
     private final S3FilesService s3FilesService;
 
     @Transactional
-    public void createExercise(GeneralExerciseRequest request) {
+    public Exercise createExercise(GeneralExerciseRequest request, AccountDetails account) {
 
         log.info("Запрос на сохранения упражнения с названием " + request.name());
 
@@ -57,20 +60,22 @@ public class GeneralExercisesService {
 
         log.warn("Валидация создания упражнения успешна " + request.name());
 
-        var exercises = new GeneralExercises();
+        var exercises = new Exercise();
 
-        exerciseSetData(exercises, request);
+        exerciseSetData(exercises, request, account);
 
         exercises = generalExercisesRepository.save(exercises);
+
+        return exercises;
     }
 
     @Transactional
-    public void updateExercises(GeneralExerciseRequest request) {
+    public Exercise updateExercises(GeneralExerciseRequest request) {
         if (request.id() == null) {
             throw new IllegalArgumentException(
                     "In exercises update request filde id must not be null");
         }
-        exerciseUpdate(request);
+        return exerciseUpdate(request);
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +95,7 @@ public class GeneralExercisesService {
 
     }
 
-    private void exerciseUpdate(GeneralExerciseRequest request) {
+    private Exercise exerciseUpdate(GeneralExerciseRequest request) {
 
         var exercise = generalExercisesRepository.findById(request.id())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -100,6 +105,7 @@ public class GeneralExercisesService {
                 .map(metric -> metric.id())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+
         exercise.getExercisesMetrics().removeIf(metric -> !newMetricId.contains(metric.getId()));
 
         var newEquipmentId = request.exercisesEquipments().stream()
@@ -107,9 +113,10 @@ public class GeneralExercisesService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        exercise.getExercisesMetrics().removeIf(metric -> !newEquipmentId.contains(metric.getId()));
+        exercise.getExerciseEquipments()
+                .removeIf(metric -> !newEquipmentId.contains(metric.getId()));
 
-        List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
+        request.exercisesMetrics().stream().map(metric -> {
             if (metric.id() != null) {
                 var dbMetric = exerciseMetricRepository.findById(metric.id())
                         .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
@@ -119,36 +126,39 @@ public class GeneralExercisesService {
             return setMetricsData(dbMetric, metric);
         }).toList();
 
-        List<ExerciseEquipment> equipments = request.exercisesEquipments().stream()
-                .map(equipment -> {
+        request.exercisesEquipments().stream()
+                .forEach(equipment -> {
                     if (equipment.id() != null) {
                         var dbEquipment = exerciseEquipmentRepository.findById(equipment.id())
                                 .orElseThrow(
                                         () -> new EntityNotFoundException("Оборудование с id: "
                                                 + equipment.id() + " не найдено"));
                         dbEquipment.getEquipmentProperties().clear();
-                        return updateEquipmentsData(dbEquipment, equipment);
+                        updateEquipmentsData(dbEquipment, equipment);
                     }
                     var dbEquipment = new ExerciseEquipment();
-                    return updateEquipmentsData(dbEquipment, equipment);
-                }).toList();
+                    setEquipmentsData(dbEquipment, equipment);
+                });
 
         exercise.setName(request.name());
         exercise.setDescription(request.description());
         exercise.setCategory(request.category());
         exercise.setImage(getMedia(request.imageFileId()));
         exercise.setVideo(getMedia(request.videoFileId()));
-
-        exercise.setExerciseEquipments(equipments);
-        exercise.setExercisesMetrics(metrics);
+        exercise.setUpdatedAt(Instant.now());
+        return exercise;
     }
 
-    private void exerciseSetData(GeneralExercises exercises, GeneralExerciseRequest request) {
-        exercises.setName(request.name());
-        exercises.setDescription(request.description());
-        exercises.setCategory(request.category());
-        exercises.setImage(getMedia(request.imageFileId()));
-        exercises.setVideo(getMedia(request.videoFileId()));
+    private void exerciseSetData(Exercise exercise, GeneralExerciseRequest request,
+            AccountDetails accountDetails) {
+        exercise.setName(request.name());
+        exercise.setDescription(request.description());
+        exercise.setCategory(request.category());
+        exercise.setImage(getMedia(request.imageFileId()));
+        exercise.setVideo(getMedia(request.videoFileId()));
+        exercise.setCreatedBy(accountDetails.account());
+        exercise.setUpdatedAt(Instant.now());
+        exercise.setCreatedAt(Instant.now());
 
         List<ExercisesMetrics> metrics = request.exercisesMetrics().stream().map(metric -> {
             if (metric.id() != null) {
@@ -157,7 +167,7 @@ public class GeneralExercisesService {
             }
             var dbMetric = new ExercisesMetrics();
             return setMetricsData(dbMetric, metric);
-        }).toList();
+        }).collect(Collectors.toCollection(ArrayList::new));
 
         List<ExerciseEquipment> equipments = request.exercisesEquipments().stream()
                 .map(equipment -> {
@@ -169,10 +179,10 @@ public class GeneralExercisesService {
                     }
                     var dbEquipment = new ExerciseEquipment();
                     return setEquipmentsData(dbEquipment, equipment);
-                }).toList();
+                }).collect(Collectors.toCollection(ArrayList::new));
 
-        exercises.setExerciseEquipments(equipments);
-        exercises.setExercisesMetrics(metrics);
+        exercise.setExerciseEquipments(equipments);
+        exercise.setExercisesMetrics(metrics);
     }
 
     private void requestValidate(GeneralExerciseRequest request) {
@@ -187,13 +197,13 @@ public class GeneralExercisesService {
     }
 
     private S3File getMedia(UUID fileId) {
-        var file = s3FilesService.setMediaReadyIfNotNull(fileId);
-        if (file.isEmpty()) {
-            return null; // Возвращаем null так как если файл и был сохранен то нужно его затереть
-                         // так как в дтошек id
-                         // не указан
+        if (fileId == null) {
+            return null;// Возвращаем null так как если файл и был сохранен то нужно его затереть
+                        // так как в дтошек id
+                        // не указан
         }
-        return file.get();
+        var file = s3FilesService.setFileReadyAndGet(fileId);
+        return file;
     }
 
     private ExercisesMetrics setMetricsData(ExercisesMetrics metric,
@@ -242,7 +252,8 @@ public class GeneralExercisesService {
                     dbProperty.setExerciseEquipment(equipment);
                     return dbProperty;
 
-                }).toList();
+                }).collect(Collectors.toCollection(ArrayList::new));
+
     }
 
     private boolean isHaveDuplicateMetricsName(List<ExercisesMetricsRequest> requests) {

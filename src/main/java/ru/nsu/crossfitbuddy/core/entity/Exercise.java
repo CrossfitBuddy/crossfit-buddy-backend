@@ -1,5 +1,6 @@
 package ru.nsu.crossfitbuddy.core.entity;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,8 +23,8 @@ import lombok.Setter;
 @Getter
 @Entity
 @Setter
-@Table(name = "general_exercise")
-public class GeneralExercises {
+@Table(name = "exercise")
+public class Exercise {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,6 +35,15 @@ public class GeneralExercises {
 
     @Column(nullable = false)
     private String description;
+
+    @Column(nullable = false)
+    private boolean isCommon = false;
+
+    @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,5 +64,9 @@ public class GeneralExercises {
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(name = "exercises_metrics", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_metric_id"))
     private List<ExercisesMetrics> exercisesMetrics;
+
+    @ManyToOne
+    @JoinColumn(name = "created_by")
+    private UserAccount createdBy;
 
 }

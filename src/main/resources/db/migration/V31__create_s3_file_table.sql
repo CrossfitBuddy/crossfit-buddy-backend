@@ -5,5 +5,7 @@ CREATE TABLE s3_file (
     size BIGINT,
     object_key VARCHAR(255),
     status VARCHAR(255),
-    expire_at TIMESTAMP WITH TIME ZONE
+    expire_at TIMESTAMP WITH TIME ZONE,
+    visibility VARCHAR(255) not null check (visibility in ('PRIVATE','PUBLIC,')),
+    created_by uuid 
 );

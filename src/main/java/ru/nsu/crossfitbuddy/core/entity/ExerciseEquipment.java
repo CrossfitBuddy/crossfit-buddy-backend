@@ -38,6 +38,6 @@ public class ExerciseEquipment {
     private List<ExerciseEquipmentProperties> equipmentProperties;
 
     @ManyToMany(mappedBy = "exerciseEquipments")
-    private List<GeneralExercises> generalExercises;
+    private List<Exercise> generalExercises;
 
 }

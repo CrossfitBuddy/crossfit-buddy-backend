@@ -3,6 +3,7 @@ package ru.nsu.crossfitbuddy.core.controller;
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,10 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import ru.nsu.crossfitbuddy.auth.security.annotation.AdminAuthority;
 import ru.nsu.crossfitbuddy.core.dto.request.exercises.GeneralExerciseRequest;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExerciseEquipmentResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
+import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
 import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 
 @RestController
@@ -26,17 +29,19 @@ import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 public class GeneralExercisesController {
     private final GeneralExercisesService generalExercisesService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @AdminAuthority
     @PostMapping(Paths.GENERAL_EXERCISES_SET)
     public void setExercises(
             @ModelAttribute
-            @Valid GeneralExerciseRequest request) {
-        generalExercisesService.createExercise(request);
+            @Valid GeneralExerciseRequest request,
+            @AuthenticationPrincipal AccountDetails userDetails) {
+        generalExercisesService.createExercise(request, userDetails);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @AdminAuthority
     @PutMapping(Paths.GENERAL_EXERCISES_UPDATE)
-    public void updateExercise(GeneralExerciseRequest request) {
+    public void updateExercise(@Valid GeneralExerciseRequest request,
+            @AuthenticationPrincipal AccountDetails userDetails) {
         generalExercisesService.updateExercises(request);
     }
 

@@ -18,9 +18,11 @@ import lombok.RequiredArgsConstructor;
 import ru.nsu.crossfitbuddy.core.dto.request.S3UploadURLRequestDTO;
 import ru.nsu.crossfitbuddy.core.dto.response.S3DownloadURLDTO;
 import ru.nsu.crossfitbuddy.core.dto.response.S3UploadURLDTO;
+import ru.nsu.crossfitbuddy.core.entity.FileVisibility;
 import ru.nsu.crossfitbuddy.core.entity.MimoType;
 import ru.nsu.crossfitbuddy.core.entity.S3File;
 import ru.nsu.crossfitbuddy.core.entity.S3FileStatus;
+import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
 import ru.nsu.crossfitbuddy.core.repository.S3FileRepository;
 
@@ -69,25 +71,29 @@ public class S3FilesService {
         file.setStatus(S3FileStatus.READY);
     }
 
-    public Optional<S3File> setMediaReadyIfNotNull(UUID fileId) {
-        if (fileId != null) {
-            var file = s3FileRepository.findByIdReadyAndNotExp(fileId)
-                    .orElseThrow(
-                            () -> new EntityNotFoundException(
-                                    "Сущность файла c id " + fileId + " не найдена в базе"));
-            if (!isFileExist(fileId, file.getFileName(), file.getType())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "", "file dose not exist in MinIo");
-            }
-            file.setStatus(S3FileStatus.READY);
-            return Optional.of(file);
+    public S3File setFileReadyAndGet(UUID fileId) {
+        var file = s3FileRepository.findByIdReadyAndNotExp(fileId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException(
+                                "Сущность файла c id " + fileId + " не найдена в базе"));
+        if (!isFileExist(fileId, file.getFileName(), file.getType())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "", "file dose not exist in MinIo");
         }
-        return Optional.ofNullable(null);
+        file.setStatus(S3FileStatus.READY);
+        return file;
     }
 
-    public S3DownloadURLDTO getDownloadLink(UUID fileId) {
+    public S3DownloadURLDTO getDownloadLink(UUID fileId, UserAccount creator) {
         var file = s3FileRepository.findByIdReadyOnly(fileId)
                 .orElseThrow(
                         () -> new EntityNotFoundException("Файл с id " + fileId + " не найден"));
+
+        if (creator.getId() != file.getCreatedBy().getId()
+                && file.getVisibility() != FileVisibility.PUBLIC) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "FILE_FORBIDEN",
+                    "Не достаточно прав для просмотра файла");
+        }
+
         var objectKey = createObjectKey(fileId, file.getFileName(), file.getType());
 
         try {

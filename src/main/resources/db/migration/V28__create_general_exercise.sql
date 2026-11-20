@@ -1,1 +1,14 @@
-create table general_exercise (id uuid not null, video_id uuid, image_id uuid, category varchar(255) not null check (category in ('STRENGTH','CARDIO','GYMNASTICS','WEIGHTLIFTING','OTHER')), description varchar(255) not null, name varchar(255) not null, primary key (id));
+ALTER TABLE exercise
+    ADD COLUMN video_id uuid,
+    ADD COLUMN image_id uuid,
+    ADD COLUMN category varchar(255) NOT NULL DEFAULT 'OTHER'
+        CHECK (category IN (
+            'STRENGTH',
+            'CARDIO',
+            'GYMNASTICS',
+            'WEIGHTLIFTING',
+            'OTHER'
+        ));
+
+ALTER TABLE exercise
+    ALTER COLUMN description SET NOT NULL;

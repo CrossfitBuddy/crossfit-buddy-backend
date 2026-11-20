@@ -37,6 +37,6 @@ public class ExercisesMetrics {
     private String unit;
 
     @ManyToMany(mappedBy = "exercisesMetrics")
-    private List<GeneralExercises> generalExercises;
+    private List<Exercise> generalExercises;
 
 }
