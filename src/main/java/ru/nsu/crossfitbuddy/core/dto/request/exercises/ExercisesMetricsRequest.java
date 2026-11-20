@@ -8,11 +8,11 @@ import jakarta.validation.constraints.Pattern;
 import ru.nsu.crossfitbuddy.core.entity.MetricsValueType;
 
 public record ExercisesMetricsRequest(
-        UUID id,
+    UUID id,
 
-        @NotBlank(message = "Необходимо указать название метрики") String name,
+    @NotBlank(message = "Необходимо указать название метрики") String name,
 
-        @NotNull MetricsValueType metricsValueType,
+    @NotNull MetricsValueType metricsValueType,
 
-        @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы") String unit) {
+    @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы") @NotBlank String unit) {
 }
