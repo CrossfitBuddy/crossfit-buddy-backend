@@ -17,6 +17,7 @@ import ru.nsu.crossfitbuddy.core.dto.request.S3UploadURLRequestDTO;
 import ru.nsu.crossfitbuddy.core.dto.response.S3DownloadURLDTO;
 import ru.nsu.crossfitbuddy.core.dto.response.S3UploadURLDTO;
 import ru.nsu.crossfitbuddy.core.entity.AccountDetails;
+import ru.nsu.crossfitbuddy.core.entity.FileVisibility;
 import ru.nsu.crossfitbuddy.core.service.S3FilesService;
 
 @RestController
@@ -28,7 +29,7 @@ public class S3FilesController {
 
     @PostMapping(Paths.FILES_UPPLOAD)
     public S3UploadURLDTO pendingRequest(@RequestBody S3UploadURLRequestDTO request) {
-        return s3FilesService.requestPending(request);
+        return s3FilesService.requestPending(request, FileVisibility.PUBLIC);
 
     }
 

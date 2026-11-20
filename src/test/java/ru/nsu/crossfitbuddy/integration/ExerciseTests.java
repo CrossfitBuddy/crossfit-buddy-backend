@@ -1,6 +1,7 @@
 package ru.nsu.crossfitbuddy.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.util.HashSet;
 import java.util.List;
@@ -10,10 +11,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import static org.assertj.core.api.Assertions.tuple;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -158,6 +160,19 @@ class ExerciseTests extends AbstractRepositoryTest {
         checkFieldsEquals(saved, request);
 
     }
+
+    // @Test
+    // @Transactional
+    // void Should_createExerciseWithImg_WhenCreateExercise() throws Exception {
+    // var request = testData();
+    // var exercise = generalExercisesService.createExercise(request,
+    // new AccountDetails(createTestAccount()));
+    // generalExercisesRepository.flush();
+    //
+    // var saved = generalExercisesRepository.findById(exercise.getId()).get();
+    // checkFieldsEquals(saved, request);
+    //
+    // }
 
     private GeneralExerciseRequest testData() {
         return new GeneralExerciseRequest(

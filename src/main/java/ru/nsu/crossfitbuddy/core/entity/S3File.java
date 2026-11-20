@@ -42,7 +42,7 @@ public class S3File {
     private Instant expireAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "visibility", nullable = false)
     private FileVisibility visibility;
 
     @ManyToOne

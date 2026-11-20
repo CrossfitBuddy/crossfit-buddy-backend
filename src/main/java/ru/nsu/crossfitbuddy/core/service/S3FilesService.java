@@ -33,9 +33,9 @@ public class S3FilesService {
     private final MinioStorageService minioStorageService;
     private final S3FileRepository s3FileRepository;
 
-    public S3UploadURLDTO requestPending(S3UploadURLRequestDTO request) {
+    public S3UploadURLDTO requestPending(S3UploadURLRequestDTO request, FileVisibility visibility) {
 
-        var file = createFile(request);
+        var file = createFile(request, visibility);
 
         var expiresAt = Instant.now().plus(10, ChronoUnit.MINUTES);
         var expiresAtLocalTime = LocalDateTime.ofInstant(expiresAt, ZoneId.of("Europe/Moscow"));
@@ -107,12 +107,13 @@ public class S3FilesService {
 
     }
 
-    private S3File createFile(S3UploadURLRequestDTO request) {
+    private S3File createFile(S3UploadURLRequestDTO request, FileVisibility visibility) {
         var file = new S3File();
         file.setSize(request.size());
         file.setFileName(request.fileName());
         file.setStatus(S3FileStatus.PENDING);
         file.setType(request.contentType());
+        file.setVisibility(visibility);
         file = s3FileRepository.save(file);
         return file;
     }
