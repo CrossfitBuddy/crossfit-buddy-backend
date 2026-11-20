@@ -30,6 +30,7 @@ import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
 import ru.nsu.crossfitbuddy.core.entity.S3File;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateEquipmentsNameExeption;
 import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicateMetricsNameExeption;
+import ru.nsu.crossfitbuddy.core.exception.exercises.DuplicatePropertiesNameException;
 import ru.nsu.crossfitbuddy.core.mapper.ExerciseEquipmentMapper;
 import ru.nsu.crossfitbuddy.core.mapper.ExercisesMetricsMapper;
 import ru.nsu.crossfitbuddy.core.mapper.GeneralExerciseMapper;
@@ -185,17 +186,6 @@ public class GeneralExercisesService {
     exercise.setExercisesMetrics(metrics);
   }
 
-  private void requestValidate(GeneralExerciseRequest request) {
-    if (isHaveDuplicateEquipmentsName(request.exercisesEquipments())) {
-      log.warn("Названия упражнений дублируются");
-      throw new DuplicateEquipmentsNameExeption();
-    }
-    if (isHaveDuplicateMetricsName(request.exercisesMetrics())) {
-      log.warn("Названия метрик дублируются");
-      throw new DuplicateMetricsNameExeption();
-    }
-  }
-
   private S3File getMedia(UUID fileId) {
     if (fileId == null) {
       return null;// Возвращаем null так как если файл и был сохранен то нужно его затереть
@@ -259,6 +249,23 @@ public class GeneralExercisesService {
 
   }
 
+  private void requestValidate(GeneralExerciseRequest request) {
+    if (isHaveDuplicateEquipmentsName(request.exercisesEquipments())) {
+      log.warn("Названия упражнений дублируются");
+      throw new DuplicateEquipmentsNameExeption();
+    }
+    if (isHaveDuplicateMetricsName(request.exercisesMetrics())) {
+      log.warn("Названия метрик дублируются");
+      throw new DuplicateMetricsNameExeption();
+    }
+    request.exercisesEquipments().stream().forEach((exercise) -> {
+      if (isHaveDuplicatePropertiesName(exercise.propertiesRequests())) {
+        log.warn("Названия свойств упражнения дублируются");
+        throw new DuplicatePropertiesNameException();
+      }
+    });
+  }
+
   private boolean isHaveDuplicateMetricsName(List<ExercisesMetricsRequest> requests) {
 
     Set<String> duplicateName = requests.stream()
@@ -285,5 +292,19 @@ public class GeneralExercisesService {
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
     return !duplicateName.isEmpty();
+  }
+
+  private boolean isHaveDuplicatePropertiesName(List<EquipmentPropertiesRequest> requests) {
+    Set<String> duplicateName = requests.stream()
+        .collect(Collectors.groupingBy(
+            EquipmentPropertiesRequest::name,
+            Collectors.counting()))
+        .entrySet()
+        .stream()
+        .filter(entry -> entry.getValue() > 1)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toSet());
+    return !duplicateName.isEmpty();
+
   }
 }
