@@ -66,10 +66,10 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
 
     /**
      * Атлет запрашивает собственную карточку. В ответе есть название, длительность, дерево
-     * stages -> rounds -> exercises и материалы. Приватных полей (createdBy, participants,
+     * complexes -> rounds -> exercises и материалы. Приватных полей (createdBy, participants,
      * type, updatedAt, workout внутри stage и т.д.) в JSON нет.
      */
-    @DisplayName("Владелец получает карточку с этапами, упражнениями и материалами без приватных полей")
+    @DisplayName("Владелец получает карточку с комплексами, упражнениями и материалами без приватных полей")
     @Test
     void ownWorkoutReturnsFullCardWithoutPrivateFields() {
         // Given
@@ -77,19 +77,19 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         var workout = workout(athlete, WorkoutType.OWN,WorkoutStatus.READY, "AMRAP для всего тела", DAY);
 
         new TransactionTemplate(txManager).executeWithoutResult(status -> {
-            var amrap = ensureStageFormat("AMRAP");
-            var chipper = ensureComplexFormat("CHIPPER");
+            var amrap = new ComplexFormat(ComplexFormatType.AMRAP, "AMRAP", "AMRAP описание");
+            var wod = WorkoutStage.builder().id(3).code("WOD").name("WOD").build();
             var burpee = Exercise.builder().name("Приседания").build();
             em.persist(burpee);
 
-            var stage = Stage.builder()
-                .workout(workout).stageFormat(amrap).complexFormat(chipper)
+            var complex = Complex.builder()
+                .workout(workout).workoutStage(wod).complexFormat(amrap)
                 .timeLimitSeconds(600).targetRounds(5).intervalSeconds(30)
                 .build();
-            em.persist(stage);
+            em.persist(complex);
 
-            var round = StageRound.builder()
-                .stage(stage).position(1).repeatCount(3)
+            var round = ComplexRound.builder()
+                .complex(complex).position(1).repeatCount(3)
                 .build();
             em.persist(round);
 
@@ -128,12 +128,11 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         assertThat(body.path("status").asText()).isEqualTo("READY");
         assertThat(body.path("durationSec").asInt()).isEqualTo(600);
 
-        // Then (stages)
-        assertThat(body.path("stages")).hasSize(1);
-        var stageJson = body.path("stages").get(0);
-        assertThat(stageJson.path("format").asText()).isEqualTo("AMRAP");
-        assertThat(stageJson.path("complexFormat").asText()).isEqualTo("CHIPPER");
-        assertThat(stageJson.path("complexFormat").isTextual()).isTrue();
+        // Then (complexes)
+        assertThat(body.path("complexes")).hasSize(1);
+        var stageJson = body.path("complexes").get(0);
+        assertThat(stageJson.path("complexFormat").asText()).isEqualTo("AMRAP");
+        assertThat(stageJson.path("workoutStage").asText()).isEqualTo("WOD");
         assertThat(stageJson.path("timeLimitSeconds").asInt()).isEqualTo(600);
         assertThat(stageJson.path("targetRounds").asInt()).isEqualTo(5);
         assertThat(stageJson.path("intervalSeconds").asInt()).isEqualTo(30);
@@ -166,11 +165,11 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
 
         Set<String> stageFields = new HashSet<>();
         stageJson.fieldNames().forEachRemaining(stageFields::add);
-        assertThat(stageFields).doesNotContain("workout", "stageFormat");
+        assertThat(stageFields).doesNotContain("workout");
 
         Set<String> roundFields = new HashSet<>();
         roundJson.fieldNames().forEachRemaining(roundFields::add);
-        assertThat(roundFields).doesNotContain("stage");
+        assertThat(roundFields).doesNotContain("complex");
 
         Set<String> exerciseFields = new HashSet<>();
         exerciseJson.fieldNames().forEachRemaining(exerciseFields::add);
@@ -332,15 +331,15 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         var workout = workout(athlete, WorkoutType.OWN, WorkoutStatus.READY,"Две стадии", DAY);
 
         new TransactionTemplate(txManager).executeWithoutResult(status -> {
-            var amrap = ensureStageFormat("AMRAP");
-            var chipper = ensureComplexFormat("CHIPPER");
+            var amrap = new ComplexFormat(ComplexFormatType.AMRAP, "AMRAP", "AMRAP описание");
+            var wod = WorkoutStage.builder().id(1).code("WOD").name("WOD").build();
 
-            em.persist(Stage.builder()
-                .workout(workout).stageFormat(amrap).complexFormat(chipper)
+            em.persist(Complex.builder()
+                .workout(workout).workoutStage(wod).complexFormat(amrap)
                 .timeLimitSeconds(300)
                 .build());
-            em.persist(Stage.builder()
-                .workout(workout).stageFormat(amrap).complexFormat(chipper)
+            em.persist(Complex.builder()
+                .workout(workout).workoutStage(wod).complexFormat(amrap)
                 .timeLimitSeconds(200)
                 .build());
             em.flush();
@@ -355,7 +354,7 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         assertThat(body.has("durationSec")).isTrue();
         assertThat(body.path("durationSec").isNull()).isFalse();
         assertThat(body.path("durationSec").asInt()).isEqualTo(500);
-        assertThat(body.path("stages")).hasSize(2);
+        assertThat(body.path("complexes")).hasSize(2);
     }
 
     @DisplayName("durationSec = null, если хотя бы у одной стадии нет timeLimitSeconds")
@@ -366,15 +365,15 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         var workout = workout(athlete, WorkoutType.OWN, WorkoutStatus.READY, "Частично с лимитом", DAY);
 
         new TransactionTemplate(txManager).executeWithoutResult(status -> {
-            var amrap = ensureStageFormat("AMRAP");
-            var chipper = ensureComplexFormat("CHIPPER");
+            var amrap = new ComplexFormat(ComplexFormatType.AMRAP, "AMRAP", "AMRAP описание");
+            var wod = WorkoutStage.builder().id(1).code("WOD").name("WOD").build();
 
-            em.persist(Stage.builder()
-                .workout(workout).stageFormat(amrap).complexFormat(chipper)
+            em.persist(Complex.builder()
+                .workout(workout).workoutStage(wod).complexFormat(amrap)
                 .timeLimitSeconds(300)
                 .build());
-            em.persist(Stage.builder()
-                .workout(workout).stageFormat(amrap).complexFormat(chipper)
+            em.persist(Complex.builder()
+                .workout(workout).workoutStage(wod).complexFormat(amrap)
                 .timeLimitSeconds(null)
                 .build());
             em.flush();
@@ -388,9 +387,9 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         var body = response.getBody();
         var duration = body.path("durationSec");
         assertThat(duration.isMissingNode() || duration.isNull()).isTrue();
-        assertThat(body.path("stages")).hasSize(2);
+        assertThat(body.path("complexes")).hasSize(2);
         var nullLimit = false;
-        for (var s : body.path("stages")) {
+        for (var s : body.path("complexes")) {
             if (s.path("timeLimitSeconds").isNull() || s.path("timeLimitSeconds").isMissingNode()) {
                 nullLimit = true;
             }
@@ -485,55 +484,10 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         return http.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
     }
 
-    // костыль
-    private StageFormat ensureStageFormat(String code) {
-        return new TransactionTemplate(txManager).execute(status -> {
-            try {
-                return em.createQuery(
-                        "from StageFormat where code = :code", StageFormat.class)
-                    .setParameter("code", code)
-                    .getSingleResult();
-            } catch (NoResultException e) {
-                var sf = StageFormat.builder()
-                    .id(9000 + Math.abs(code.hashCode() % 1000))
-                    .code(code)
-                    .name(code)
-                    .position(0)
-                    .build();
-                em.persist(sf);
-                em.flush();
-                return sf;
-            }
-        });
-    }
-
-    // костыль
-    private ComplexFormat ensureComplexFormat(String code) {
-        return new TransactionTemplate(txManager).execute(status -> {
-            try {
-                return em.createQuery(
-                        "from ComplexFormat where code = :code", ComplexFormat.class)
-                    .setParameter("code", code)
-                    .getSingleResult();
-            } catch (NoResultException e) {
-                var cf = ComplexFormat.builder()
-                    .id(9000 + Math.abs(code.hashCode() % 1000))
-                    .code(code)
-                    .name(code)
-                    .build();
-                em.persist(cf);
-                em.flush();
-                return cf;
-            }
-        });
-    }
-
     @AfterEach
     void cleanup() {
         subscriptions.deleteAllByIdInBatch(subscriptionIds);
         participants.deleteAllByIdInBatch(participantIds);
-        workouts.deleteAllByIdInBatch(workoutIds);
-        accountIds.forEach(accounts::deleteById);
         workouts.deleteAllByIdInBatch(workoutIds);
         accountIds.forEach(accounts::deleteById);
     }

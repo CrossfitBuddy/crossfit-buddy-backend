@@ -13,7 +13,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.nsu.crossfitbuddy.auth.security.annotation.ActiveRoleIn;
 import ru.nsu.crossfitbuddy.core.dto.response.ErrorResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.WorkoutDetailsResponse;
@@ -105,8 +109,8 @@ public class WorkoutController {
     @GetMapping("/{id}")
     @Operation(
         summary = "Получить карточку тренировки",
-        description = "Возвращает подробную информацию о тренировке: название, формат, длительность, "
-            + "этапы с раундами и упражнениями, дополнительные материалы. "
+        description = "Возвращает подробную информацию о тренировке: название, тип, статус, длительность, "
+            + "комплексы с раундами и упражнениями, дополнительные материалы. "
             + "ATHLETE видит собственные, назначенные при ACTIVE-подписке и явно shared тренировки. "
             + "TRAINER видит созданные им тренировки. ADMIN видит любые. "
             + "Для отсутствующей или недоступной карточки возвращается 404 с одинаковым телом - "

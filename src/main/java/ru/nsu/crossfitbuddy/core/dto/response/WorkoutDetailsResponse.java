@@ -13,6 +13,6 @@ public record WorkoutDetailsResponse(
     WorkoutType type,
     WorkoutStatus status,
     Integer durationSec,
-    List<StageResponse> stages,
+    List<ComplexResponse> complexes,
     List<WorkoutMaterialResponse> materials
 ){}

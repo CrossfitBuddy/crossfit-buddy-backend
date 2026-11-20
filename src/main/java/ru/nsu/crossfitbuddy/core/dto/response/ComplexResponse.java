@@ -3,9 +3,9 @@ package ru.nsu.crossfitbuddy.core.dto.response;
 import java.util.List;
 import java.util.UUID;
 
-public record StageResponse(
+public record ComplexResponse(
     UUID id,
-    String format,
+    String workoutStage,
     String complexFormat,
     Integer timeLimitSeconds,
     Integer targetRounds,

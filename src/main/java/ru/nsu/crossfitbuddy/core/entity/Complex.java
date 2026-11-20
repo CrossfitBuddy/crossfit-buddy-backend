@@ -14,10 +14,10 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "stage")
+@Table(name = "complex")
 @Getter
 @Setter
-public class Stage {
+public class Complex {
     @Id
     @GeneratedValue
     private UUID id;
@@ -27,11 +27,11 @@ public class Stage {
     private Workout workout;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "format_id", nullable = false)
-    private StageFormat stageFormat;
+    @JoinColumn(name = "workout_stage_id", nullable = false)
+    private WorkoutStage workoutStage;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "complex_format_id", nullable = false)
+    @JoinColumn(name = "complex_format_type", nullable = false)
     private ComplexFormat complexFormat;
 
     @Column(name = "time_limit_seconds")
@@ -51,6 +51,6 @@ public class Stage {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @OneToMany(mappedBy = "stage", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StageRound> rounds = new ArrayList<>();
+    @OneToMany(mappedBy = "complex", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComplexRound> rounds = new ArrayList<>();
 }

@@ -3,8 +3,12 @@ package ru.nsu.crossfitbuddy.core.mapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
-import ru.nsu.crossfitbuddy.core.dto.response.*;
-import ru.nsu.crossfitbuddy.core.entity.*;
+import ru.nsu.crossfitbuddy.core.dto.response.WorkoutDetailsResponse;
+import ru.nsu.crossfitbuddy.core.dto.response.WorkoutSummaryResponse;
+import ru.nsu.crossfitbuddy.core.dto.response.WorkoutListResponse;
+import ru.nsu.crossfitbuddy.core.entity.Complex;
+import ru.nsu.crossfitbuddy.core.entity.Workout;
+import ru.nsu.crossfitbuddy.core.entity.WorkoutType;
 
 import java.util.Comparator;
 import java.util.List;
@@ -13,7 +17,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class WorkoutResponseMapper {
-    private final StageResponseMapper stageMapper;
+    private final ComplexResponseMapper complexMapper;
     private final WorkoutMaterialMapper materialMapper;
 
     public WorkoutSummaryResponse toResponse(Workout workout, UUID userId) {
@@ -38,9 +42,9 @@ public class WorkoutResponseMapper {
     }
 
     public WorkoutDetailsResponse toDetails(Workout w) {
-        var stages = w.getStages().stream()
-                .sorted(Comparator.comparingInt(stage -> stage.getStageFormat().getPosition()))
-                .map(stageMapper::toResponse)
+        var complexes = w.getComplexes().stream()
+                .sorted(Comparator.comparingInt(c -> c.getWorkoutStage().getPosition()))
+                .map(complexMapper::toResponse)
                 .toList();
 
         var materials = w.getMaterials().stream()
@@ -49,22 +53,22 @@ public class WorkoutResponseMapper {
 
         return new WorkoutDetailsResponse(
                 w.getId(), w.getTitle(), w.getDescription(),
-                w.getType(), w.getStatus(), totalDuration(w.getStages()),
-                stages, materials
+                w.getType(), w.getStatus(), totalDuration(w.getComplexes()),
+                complexes, materials
         );
     }
 
-    private Integer totalDuration(List<Stage> stages) {
-        if (stages.isEmpty()) {
+    private Integer totalDuration(List<Complex> complexes) {
+        if (complexes.isEmpty()) {
             return null;
         }
-        boolean anyMissing = stages.stream()
+        boolean anyMissing = complexes.stream()
                 .anyMatch(s -> s.getTimeLimitSeconds() == null);
         if (anyMissing) {
             return null;
         }
-        return stages.stream()
-                .mapToInt(Stage::getTimeLimitSeconds)
+        return complexes.stream()
+                .mapToInt(Complex::getTimeLimitSeconds)
                 .sum();
     }
 }
