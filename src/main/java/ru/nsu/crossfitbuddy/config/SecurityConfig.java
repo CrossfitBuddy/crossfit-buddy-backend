@@ -39,58 +39,57 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] ENDPOINTS_INFRASTRUCTURE = {
-        InfraPaths.ACTUATOR_HEALTH,
-        InfraPaths.ACTUATOR_HEALTH + "/**"
+            InfraPaths.ACTUATOR_HEALTH,
+            InfraPaths.ACTUATOR_HEALTH + "/**"
     };
 
     private static final String[] ENDPOINTS_SWAGGER = {
-        InfraPaths.SWAGGER_UI_HTML,
-        InfraPaths.SWAGGER_UI + "/**",
-        InfraPaths.SWAGGER_RESOURCES,
-        InfraPaths.SWAGGER_RESOURCES + "/**",
-        InfraPaths.V3_API_DOCS + "/**"
+            InfraPaths.SWAGGER_UI_HTML,
+            InfraPaths.SWAGGER_UI + "/**",
+            InfraPaths.SWAGGER_RESOURCES,
+            InfraPaths.SWAGGER_RESOURCES + "/**",
+            InfraPaths.V3_API_DOCS + "/**"
     };
 
     private static final String[] ENDPOINTS_WHITELIST = {
-        Paths.EMAIL
+            Paths.EMAIL
     };
 
     private static final String[] ENDPOINTS_PUBLIC_AUTH = {
-        Paths.AUTH + Paths.AUTH_LOGIN,
-        Paths.AUTH + Paths.AUTH_REGISTER,
-        Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
-        Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
-        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
-        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM
+            Paths.AUTH + Paths.AUTH_LOGIN,
+            Paths.AUTH + Paths.AUTH_REGISTER,
+            Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
+            Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
+            Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
+            Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM
     };
 
     @Bean
     SecurityFilterChain securityFilterChain(
-        HttpSecurity http,
-        JwtAuthenticationFilter jwtFilter,
-        SecurityErrorHandler errors
-    ) throws Exception {
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtFilter,
+            SecurityErrorHandler errors) throws Exception {
         return http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> {})
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .requestCache(RequestCacheConfigurer::disable)
-            .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .logout(AbstractHttpConfigurer::disable)
-            .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(errors)
-                .accessDeniedHandler(errors)
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(request -> request
-                .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
-                .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
-                .requestMatchers(HttpMethod.POST, ENDPOINTS_PUBLIC_AUTH).permitAll()
-                .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
-                .anyRequest().authenticated()
-            )
-            .build();
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> {
+                })
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(RequestCacheConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(errors)
+                        .accessDeniedHandler(errors))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers(ENDPOINTS_INFRASTRUCTURE).permitAll()
+                        .requestMatchers(ENDPOINTS_WHITELIST).permitAll()
+                        .requestMatchers(HttpMethod.POST, ENDPOINTS_PUBLIC_AUTH).permitAll()
+                        .requestMatchers(ENDPOINTS_SWAGGER).permitAll()
+                        .anyRequest().authenticated())
+                .build();
     }
 
     @Bean
@@ -100,12 +99,12 @@ public class SecurityConfig {
 
     @Bean
     AuthenticationManager authenticationManager(
-        AccountDetailsService accounts,
-        PasswordEncoder encoder
-    ) {
+            AccountDetailsService accounts,
+            PasswordEncoder encoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(accounts);
         provider.setPasswordEncoder(encoder);
-        provider.setPreAuthenticationChecks(details -> {});
+        provider.setPreAuthenticationChecks(details -> {
+        });
         provider.setPostAuthenticationChecks(new AccountStatusUserDetailsChecker());
         return new ProviderManager(provider);
     }
@@ -116,7 +115,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+    FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter filter) {
         var registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
@@ -124,11 +124,11 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(
-        @Value("${app.cors.allowed-origins}") List<String> allowedOrigins
-    ) {
+            @Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration
+                .setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(false);
 

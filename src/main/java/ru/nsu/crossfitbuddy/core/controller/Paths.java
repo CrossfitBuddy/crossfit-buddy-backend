@@ -8,6 +8,12 @@ public final class Paths {
     // workouts
     public static final String WORKOUTS = "/v1/workouts";
 
+    // complex
+    public static final String COMPLEX = "/v1/complex";
+    public static final String COMPLEX_FORMATS = "/formats";
+    public static final String COMPLEX_FORMATS_BY_TYPE = "/{type}";
+
+
     // auth
     public static final String AUTH = "/v1/auth";
     public static final String AUTH_LOGIN = "/login";

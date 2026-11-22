@@ -25,6 +25,7 @@
     <testcontainers.version>1.21.4</testcontainers.version>
     <archunit.version>1.4.1</archunit.version>
     <greenmail.version>2.1.12</greenmail.version>
+    <thymeleaf.version>3.1.5.RELEASE</thymeleaf.version>
   </properties>
 
   <dependencies>
@@ -152,6 +153,16 @@
       <artifactId>greenmail-junit5</artifactId>
       <version>${greenmail.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>  
+    <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.23.2</version>
+        <scope>compile</scope>
     </dependency>
   </dependencies>
 

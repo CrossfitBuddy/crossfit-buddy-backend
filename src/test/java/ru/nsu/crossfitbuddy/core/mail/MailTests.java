@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.test.context.ActiveProfiles;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.util.ServerSetupTest;
@@ -19,13 +21,15 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.MailService;
+import ru.nsu.crossfitbuddy.core.mail.service.SMTPMailService;
 
 @ActiveProfiles("test")
 class MailTests {
     @RegisterExtension
     static GreenMailExtension greenMail = new GreenMailExtension(ServerSetupTest.SMTP_IMAP);
 
-    @Autowired
     private MailService emailService;
 
     @BeforeEach
@@ -37,6 +41,15 @@ class MailTests {
         mailSender.setPort(greenMail.getSmtp().getServerSetup().getPort());
         mailSender.setProtocol(greenMail.getSmtp().getServerSetup().getProtocol());
 
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setTemplateMode("HTML");
+
+        var templateEngine = new TemplateEngine();
+        templateEngine.setTemplateResolver(resolver);
+
         this.emailService = new SMTPMailService(mailSender, "testmail@mail.com");
     }
 
@@ -44,7 +57,7 @@ class MailTests {
     @Test
     void Should_TransferCurrentCountEmail_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Hello!");
+        emailService.sendHtml(new RawMailTemplate("Hello!", "user@example.com", "subject"));
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
@@ -55,7 +68,7 @@ class MailTests {
     @Test
     void Should_TransferCorrectSubject_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Hello!");
+        emailService.sendHtml(new RawMailTemplate("Hello!", "user@example.com", "subject"));
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
@@ -68,7 +81,7 @@ class MailTests {
     @Test
     void Should_TransferCorrectOutputAddress_WhenSendHtml() throws MessagingException {
 
-        emailService.sendHtml("user@example.com", "subject", "Hello!");
+        emailService.sendHtml(new RawMailTemplate("Hello!", "user@example.com", "subject"));
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 
@@ -79,7 +92,7 @@ class MailTests {
     @Test
     void Should_TransferCorrectText_WhenSendHtml() throws MessagingException, IOException {
 
-        emailService.sendHtml("user@example.com", "subject", "Hello!");
+        emailService.sendHtml(new RawMailTemplate("Hello!", "user@example.com", "subject"));
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
 

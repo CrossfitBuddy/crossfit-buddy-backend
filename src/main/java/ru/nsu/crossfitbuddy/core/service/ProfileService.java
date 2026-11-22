@@ -35,27 +35,30 @@ public class ProfileService {
     }
 
     @Transactional
-    public ProfileResponse updateCurrentProfile(CurrentUser currentUser, UpdateProfileRequest request) {
+    public ProfileResponse updateCurrentProfile(CurrentUser currentUser,
+            UpdateProfileRequest request) {
         var profile = findProfileOrThrow(currentUser.id(), true);
         var roles = profile.getUser().getRoles();
 
         if ((request.athlete() != null && !roles.contains(UserRole.ATHLETE))
-            || (request.trainer() != null && !roles.contains(UserRole.TRAINER))) {
-            throw new AccessDeniedException("The requested profile role is not assigned to this account");
+                || (request.trainer() != null && !roles.contains(UserRole.TRAINER))) {
+            throw new AccessDeniedException(
+                    "The requested profile role is not assigned to this account");
         }
 
         if ((roles.contains(UserRole.ATHLETE) && request.athlete() == null)
-            || (roles.contains(UserRole.TRAINER) && request.trainer() == null)) {
+                || (roles.contains(UserRole.TRAINER) && request.trainer() == null)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
-                "The profile data for every assigned role is required.");
+                    "The profile data for every assigned role is required.");
         }
 
-        profile.updateDetails(request.firstName(), request.lastName(), request.birthDate(), request.gender(),
-            request.city(), request.about(), profile.getAvatarKey());
+        profile.updateDetails(request.firstName(), request.lastName(), request.birthDate(),
+                request.gender(),
+                request.city(), request.about(), profile.getAvatarKey());
 
         if (request.athlete() != null) {
             var athleteProfile = athleteProfileRepository.findById(profile.getId())
-                .orElseThrow(ProfileService::roleProfileNotFound);
+                    .orElseThrow(ProfileService::roleProfileNotFound);
             var athlete = request.athlete();
 
             athleteProfile.updateMeasurements(athlete.heightCm(), athlete.weightKg());
@@ -64,36 +67,47 @@ public class ProfileService {
 
         if (request.trainer() != null) {
             var trainerProfile = trainerProfileRepository.findById(profile.getId())
-                .orElseThrow(ProfileService::roleProfileNotFound);
+                    .orElseThrow(ProfileService::roleProfileNotFound);
             var trainer = request.trainer();
 
-            trainerProfile.updateDetails(trainer.specializations(), trainer.experienceYears(), trainer.methodology());
+            trainerProfile.updateDetails(trainer.specializations(), trainer.experienceYears(),
+                    trainer.methodology());
         }
 
         return toResponse(profile);
     }
 
     UserProfile findProfileOrThrow(UUID id, boolean lockForUpdate) {
-        return (lockForUpdate ? userProfileRepository.findForUpdate(id) : userProfileRepository.findById(id))
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", "Profile was not found."));
+        return (lockForUpdate ? userProfileRepository.findForUpdate(id)
+                : userProfileRepository.findById(id))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND",
+                        "Profile was not found."));
     }
 
     private ProfileResponse toResponse(UserProfile profile) {
         var account = profile.getUser();
         var athlete = account.getRoles().contains(UserRole.ATHLETE)
-            ? athleteProfileRepository.findById(profile.getId()).map(value -> new ProfileResponse.AthleteFields(
-                value.getHeightCm(), value.getWeightKg(), value.getFitnessLevel(), value.getRxPreference()))
-                .orElseThrow(ProfileService::roleProfileNotFound) : null;
+                ? athleteProfileRepository.findById(profile.getId())
+                        .map(value -> new ProfileResponse.AthleteFields(
+                                value.getHeightCm(), value.getWeightKg(), value.getFitnessLevel(),
+                                value.getRxPreference()))
+                        .orElseThrow(ProfileService::roleProfileNotFound)
+                : null;
         var trainer = account.getRoles().contains(UserRole.TRAINER)
-            ? trainerProfileRepository.findById(profile.getId()).map(value -> new ProfileResponse.TrainerFields(
-                value.getSpecializations(), value.getExperienceYears(), value.getMethodology()))
-                .orElseThrow(ProfileService::roleProfileNotFound) : null;
+                ? trainerProfileRepository.findById(profile.getId())
+                        .map(value -> new ProfileResponse.TrainerFields(
+                                value.getSpecializations(), value.getExperienceYears(),
+                                value.getMethodology()))
+                        .orElseThrow(ProfileService::roleProfileNotFound)
+                : null;
 
         return new ProfileResponse(account.getId(), account.getEmail(), account.getRoles(),
-            profile.getFirstName(), profile.getLastName(), profile.getDisplayName(), profile.getBirthDate(),
-            profile.getGender(), profile.getCity(), profile.getAbout(),
-            userAvatarRepository.existsById(profile.getId()) ? Paths.AVATAR : null,
-            extractInitial(profile.getFirstName()) + extractInitial(profile.getLastName()), athlete, trainer);
+                profile.getFirstName(), profile.getLastName(), profile.getDisplayName(),
+                profile.getBirthDate(),
+                profile.getGender(), profile.getCity(), profile.getAbout(),
+                userAvatarRepository.existsById(profile.getId()) ? Paths.AVATAR : null,
+                extractInitial(profile.getFirstName()) + extractInitial(profile.getLastName()),
+                athlete, trainer);
     }
 
     private static String extractInitial(String value) {
@@ -101,11 +115,12 @@ public class ProfileService {
             return "";
         }
         String normalized = value.strip();
-        return normalized.substring(0, normalized.offsetByCodePoints(0, 1)).toUpperCase(java.util.Locale.ROOT);
+        return normalized.substring(0, normalized.offsetByCodePoints(0, 1))
+                .toUpperCase(java.util.Locale.ROOT);
     }
 
     private static ApiException roleProfileNotFound() {
         return new ApiException(HttpStatus.CONFLICT, "ROLE_PROFILE_NOT_FOUND",
-            "The profile for an assigned role has not been created. Contact an administrator.");
+                "The profile for an assigned role has not been created. Contact an administrator.");
     }
 }

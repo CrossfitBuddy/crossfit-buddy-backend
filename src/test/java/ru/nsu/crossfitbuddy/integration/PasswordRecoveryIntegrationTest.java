@@ -5,6 +5,10 @@ import com.icegreen.greenmail.util.ServerSetup;
 import jakarta.mail.Part;
 import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +28,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.entity.UserAccount;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
-import ru.nsu.crossfitbuddy.core.mail.SMTPMailService;
+import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
+import ru.nsu.crossfitbuddy.core.mail.service.SMTPMailService;
 import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -43,14 +56,7 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.jsoup.Jsoup;
 
 @SpringBootTest(properties = "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 @AutoConfigureMockMvc
@@ -108,13 +114,13 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
 
     private User createTestAccount(String email) {
         var account = UserAccount.builder()
-            .email(email)
-            .passwordHash(encoder.encode(OLD_PASSWORD))
-            .roles(new HashSet<>(Set.of(UserRole.ATHLETE)))
-            .activeRole(UserRole.ATHLETE)
-            .enabled(true)
-            .deleted(false)
-            .build();
+                .email(email)
+                .passwordHash(encoder.encode(OLD_PASSWORD))
+                .roles(new HashSet<>(Set.of(UserRole.ATHLETE)))
+                .activeRole(UserRole.ATHLETE)
+                .enabled(true)
+                .deleted(false)
+                .build();
         accounts.saveAndFlush(account);
         return new User(account.getId(), email);
     }
@@ -126,33 +132,36 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         var user = createTestAccount(email);
 
         requestCode(" " + user.email().toUpperCase(Locale.ROOT) + " ")
-            .andExpect(status().isOk())
-            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
         String code = deliveredCode();
-        var row = database.queryForMap("select * from password_reset_code where user_id=?", user.id());
+        var row = database.queryForMap("select * from password_reset_code where user_id=?",
+                user.id());
         assertThat(encoder.matches(code, (String) row.get("code_hash"))).isTrue();
         assertThat(row.get("code_hash")).isNotEqualTo(code);
         assertThat(database.queryForObject(
-            "select extract(epoch from expires_at-created_at)::int from password_reset_code where user_id=?",
-            Integer.class, user.id())).isEqualTo(900);
+                "select extract(epoch from expires_at-created_at)::int from password_reset_code where user_id=?",
+                Integer.class, user.id())).isEqualTo(900);
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isOk())
-            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
-            .andExpect(jsonPath("message").isNotEmpty())
-            .andExpect(jsonPath("accessToken").doesNotExist());
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                .andExpect(jsonPath("message").isNotEmpty())
+                .andExpect(jsonPath("accessToken").doesNotExist());
 
         var account = accounts.findById(user.id()).orElseThrow();
         assertThat(encoder.matches(NEW_PASSWORD, account.getPasswordHash())).isTrue();
         assertThat(account.getTokenVersion()).isEqualTo(1);
-        assertThat(database.queryForObject("select consumed_at is not null from password_reset_code where user_id=?",
-            Boolean.class, user.id())).isTrue();
+        assertThat(database.queryForObject(
+                "select consumed_at is not null from password_reset_code where user_id=?",
+                Boolean.class, user.id())).isTrue();
 
         login(user.email(), OLD_PASSWORD).andExpect(status().isUnauthorized());
         login(user.email(), NEW_PASSWORD).andExpect(status().isOk());
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         login(user.email(), NEW_PASSWORD).andExpect(status().isOk());
     }
 
@@ -163,25 +172,27 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         var user = createTestAccount(email);
 
         String expected = requestCode(user.email()).andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+                .andReturn().getResponse().getContentAsString();
         int count = SMTP.getReceivedMessages().length;
 
         assertThat(requestCode(UUID.randomUUID() + "@example.com").andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
+                .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
 
         database.update("update user_account set enabled=false where id=?", user.id());
         assertThat(requestCode(user.email()).andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
+                .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
 
         database.update("update user_account set enabled=true, deleted=true where id=?", user.id());
         assertThat(requestCode(user.email()).andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
+                .andReturn().getResponse().getContentAsString()).isEqualTo(expected);
 
         assertThat(SMTP.getReceivedMessages()).hasSize(count);
         confirm(user.email(), deliveredCode(), NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         confirm("unknown@example.com", "000000", NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
     }
 
     @Test
@@ -196,13 +207,14 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
 
         for (int attempt = 1; attempt <= 5; attempt++) {
             confirm(user.email(), wrong, NEW_PASSWORD, NEW_PASSWORD)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
             assertThat(failedAttempts(user.id())).isEqualTo(attempt);
         }
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         assertThat(failedAttempts(user.id())).isEqualTo(5);
 
         requestCode(user.email()).andExpect(status().isOk());
@@ -226,11 +238,14 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         String current = deliveredCode();
 
         assertThat(current).isNotEqualTo(previous);
-        assertThat(database.queryForObject("select count(*) from password_reset_code where user_id=?",
-            Integer.class, user.id())).isEqualTo(1);
+        assertThat(
+                database.queryForObject("select count(*) from password_reset_code where user_id=?",
+                        Integer.class, user.id()))
+                .isEqualTo(1);
 
         confirm(user.email(), previous, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         confirm(user.email(), current, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isOk());
     }
 
@@ -245,7 +260,8 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
 
         when(clock.instant()).thenReturn(now.plus(Duration.ofMinutes(15)));
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
         assertThat(failedAttempts(user.id())).isZero();
 
         login(user.email(), OLD_PASSWORD).andExpect(status().isOk());
@@ -260,9 +276,11 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         requestCode(user.email()).andExpect(status().isOk());
         String code = deliveredCode();
 
-        doThrow(new MailSendException("SMTP unavailable")).when(mail).sendHtml(anyString(), anyString(), anyString());
+        doThrow(new MailSendException("SMTP unavailable")).when(mail)
+                .sendHtml(any());
         requestCode(user.email()).andExpect(status().isOk())
-            .andExpect(jsonPath("message").value("Код восстановления отправлен на указанный email"));
+                .andExpect(jsonPath("message")
+                        .value("Код восстановления отправлен на указанный email"));
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isOk());
     }
@@ -293,20 +311,23 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         String code = deliveredCode();
 
         var requests = IntStream.range(0, 7)
-            .mapToObj(i -> CompletableFuture.supplyAsync(() -> confirmStatus(user.email(), wrongCode(code))))
-            .toList();
+                .mapToObj(i -> CompletableFuture
+                        .supplyAsync(() -> confirmStatus(user.email(), wrongCode(code))))
+                .toList();
 
         assertThat(requests.stream().map(CompletableFuture::join).toList()).containsOnly(400);
         assertThat(failedAttempts(user.id())).isEqualTo(5);
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidPasswords")
     @DisplayName("Проверка нового пароля")
-    void validatesPassword(String name, String password, String confirmation, String error) throws Exception {
+    void validatesPassword(String name, String password, String confirmation, String error)
+            throws Exception {
         String email = UUID.randomUUID() + "@example.com";
         var user = createTestAccount(email);
 
@@ -314,53 +335,63 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         String code = deliveredCode();
 
         confirm(user.email(), code, password, confirmation)
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("status").value(400))
-            .andExpect(jsonPath("code").value(error))
-            .andExpect(jsonPath("timestamp").isNotEmpty())
-            .andExpect(jsonPath("message").isNotEmpty())
-            .andExpect(jsonPath("path").value(CONFIRM_PATH));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("status").value(400))
+                .andExpect(jsonPath("code").value(error))
+                .andExpect(jsonPath("timestamp").isNotEmpty())
+                .andExpect(jsonPath("message").isNotEmpty())
+                .andExpect(jsonPath("path").value(CONFIRM_PATH));
 
         assertThat(failedAttempts(user.id())).isZero();
         assertThat(encoder.matches(OLD_PASSWORD,
-            accounts.findById(user.id()).orElseThrow().getPasswordHash())).isTrue();
+                accounts.findById(user.id()).orElseThrow().getPasswordHash())).isTrue();
 
         confirm(user.email(), code, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isOk());
     }
 
     static Stream<org.junit.jupiter.params.provider.Arguments> invalidPasswords() {
         return Stream.of(
-            org.junit.jupiter.params.provider.Arguments.of("Short", "Ab1!xyz", "Ab1!xyz", "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("No digits", "LettersOnly!Password", "LettersOnly!Password", "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("No letters", "123456789!", "123456789!", "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("No special characters", "LettersOnlyPassword123", "LettersOnlyPassword123", "VALIDATION_ERROR"),
-            org.junit.jupiter.params.provider.Arguments.of("Mismatch", NEW_PASSWORD, "Other1!abc", "PASSWORD_MISMATCH"),
-            org.junit.jupiter.params.provider.Arguments.of("UTF-8 bytes", "界".repeat(24) + "1!", "界".repeat(24) + "1!", "PASSWORD_TOO_LONG"));
+                org.junit.jupiter.params.provider.Arguments.of("Short", "Ab1!xyz", "Ab1!xyz",
+                        "VALIDATION_ERROR"),
+                org.junit.jupiter.params.provider.Arguments.of("No digits", "LettersOnly!Password",
+                        "LettersOnly!Password", "VALIDATION_ERROR"),
+                org.junit.jupiter.params.provider.Arguments.of("No letters", "123456789!",
+                        "123456789!", "VALIDATION_ERROR"),
+                org.junit.jupiter.params.provider.Arguments.of("No special characters",
+                        "LettersOnlyPassword123", "LettersOnlyPassword123", "VALIDATION_ERROR"),
+                org.junit.jupiter.params.provider.Arguments.of("Mismatch", NEW_PASSWORD,
+                        "Other1!abc", "PASSWORD_MISMATCH"),
+                org.junit.jupiter.params.provider.Arguments.of("UTF-8 bytes", "界".repeat(24) + "1!",
+                        "界".repeat(24) + "1!", "PASSWORD_TOO_LONG"));
     }
 
     @Test
     @DisplayName("Проверка запросов восстановления")
     void validatesPublicRequests() throws Exception {
-        mvc.perform(post(REQUEST_PATH).contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"invalid\"}"))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("VALIDATION_ERROR"));
+        mvc.perform(post(REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"invalid\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("VALIDATION_ERROR"));
 
         String email = UUID.randomUUID() + "@example.com";
         var user = createTestAccount(email);
 
         mvc.perform(post(REQUEST_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
-                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("email", user.email()))))
-            .andExpect(status().isOk());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("email", user.email()))))
+                .andExpect(status().isOk());
 
         String code = deliveredCode();
         for (String invalid : List.of("12345", "1234567", "abcdef", "１２３４５６")) {
-            confirm(user.email(), invalid, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isBadRequest());
+            confirm(user.email(), invalid, NEW_PASSWORD, NEW_PASSWORD)
+                    .andExpect(status().isBadRequest());
         }
 
         mvc.perform(post(CONFIRM_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer expired")
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
-                    "email", user.email(), "code", code, "password", NEW_PASSWORD,
-                    "passwordConfirmation", NEW_PASSWORD))))
-            .andExpect(status().isOk());
+                        "email", user.email(), "code", code, "password", NEW_PASSWORD,
+                        "passwordConfirmation", NEW_PASSWORD))))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -376,13 +407,14 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         String code = deliveredCode();
 
         confirm(other.email(), code, NEW_PASSWORD, NEW_PASSWORD)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("code").value("INVALID_RESET_CODE"));
 
         when(clock.instant()).thenReturn(now.plus(Duration.ofMinutes(15)).minusSeconds(1));
         confirm(owner.email(), code, NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isOk());
 
         assertThat(encoder.matches(OLD_PASSWORD,
-            accounts.findById(other.id()).orElseThrow().getPasswordHash())).isTrue();
+                accounts.findById(other.id()).orElseThrow().getPasswordHash())).isTrue();
     }
 
     @Test
@@ -395,11 +427,14 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         var second = CompletableFuture.supplyAsync(() -> requestStatus(user.email()));
 
         assertThat(List.of(first.join(), second.join())).containsOnly(200);
-        assertThat(database.queryForObject("select count(*) from password_reset_code where user_id=?",
-            Integer.class, user.id())).isEqualTo(1);
+        assertThat(
+                database.queryForObject("select count(*) from password_reset_code where user_id=?",
+                        Integer.class, user.id()))
+                .isEqualTo(1);
         assertThat(SMTP.getReceivedMessages()).hasSize(2);
 
-        confirm(user.email(), deliveredCode(), NEW_PASSWORD, NEW_PASSWORD).andExpect(status().isOk());
+        confirm(user.email(), deliveredCode(), NEW_PASSWORD, NEW_PASSWORD)
+                .andExpect(status().isOk());
     }
 
     private int requestStatus(String email) {
@@ -412,38 +447,42 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
 
     private ResultActions requestCode(String email) throws Exception {
         return mvc.perform(post(REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(Map.of("email", email))));
+                .content(json.writeValueAsString(Map.of("email", email))));
     }
 
-    private ResultActions confirm(String email, String code, String password, String confirmation) throws Exception {
+    private ResultActions confirm(String email, String code, String password, String confirmation)
+            throws Exception {
         return mvc.perform(post(CONFIRM_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(Map.of("email", email, "code", code, "password", password,
-                "passwordConfirmation", confirmation))));
+                .content(json.writeValueAsString(
+                        Map.of("email", email, "code", code, "password", password,
+                                "passwordConfirmation", confirmation))));
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mvc.perform(post(Paths.AUTH + Paths.AUTH_LOGIN).contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(Map.of("email", email, "password", password))));
+        return mvc.perform(post("/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("email", email, "password", password))));
     }
 
     private int confirmStatus(String email, String code) {
         try {
-            return confirm(email, code, NEW_PASSWORD, NEW_PASSWORD).andReturn().getResponse().getStatus();
+            return confirm(email, code, NEW_PASSWORD, NEW_PASSWORD).andReturn().getResponse()
+                    .getStatus();
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
     }
 
     private int failedAttempts(UUID userId) {
-        return database.queryForObject("select failed_attempts from password_reset_code where user_id=?",
-            Integer.class, userId);
+        return database.queryForObject(
+                "select failed_attempts from password_reset_code where user_id=?",
+                Integer.class, userId);
     }
 
     private String deliveredCode() throws Exception {
         var messages = SMTP.getReceivedMessages();
         assertThat(messages).isNotEmpty();
         var message = messages[messages.length - 1];
-        assertThat(message.getSubject()).isEqualTo("Восстановление доступа к системе");
+        assertThat(message.getSubject()).isEqualTo("Восстановление пароля CrossfitBuddy");
         var matcher = Pattern.compile("[0-9]{6}").matcher(text(message));
         assertThat(matcher.find()).isTrue();
         return matcher.group();
@@ -455,7 +494,8 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
             for (int i = 0; i < multipart.getCount(); i++) {
                 result.append(text(multipart.getBodyPart(i)));
             }
-            return result.toString();
+            return Jsoup.parse(result.toString()).text();
+
         }
         return part.getContent().toString();
     }
@@ -464,5 +504,8 @@ class PasswordRecoveryIntegrationTest extends AbstractRepositoryTest {
         return code.equals("000000") ? "000001" : "000000";
     }
 
-    private record User(UUID id, String email) {}
+    private record User(
+            UUID id,
+            String email) {
+    }
 }

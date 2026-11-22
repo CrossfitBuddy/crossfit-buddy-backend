@@ -33,40 +33,42 @@ public class AvatarController {
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> replaceCurrentAvatar(
-        @AuthenticationPrincipal CurrentUser currentUser,
-        @RequestPart("file") MultipartFile file) throws IOException {
+            @AuthenticationPrincipal CurrentUser currentUser,
+            @RequestPart("file") MultipartFile file) throws IOException {
 
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_FILE", "File must not be empty.");
         }
         if (file.getSize() > AvatarValidator.MAX_BYTES) {
             throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "AVATAR_TOO_LARGE",
-                "Avatar must not exceed 5 MB.");
+                    "Avatar must not exceed 5 MB.");
         }
 
         avatarService.replaceCurrentAvatar(currentUser, file);
 
         return ResponseEntity.noContent()
-            .cacheControl(CacheControl.noStore())
-            .build();
+                .cacheControl(CacheControl.noStore())
+                .build();
     }
 
     @GetMapping
-    public ResponseEntity<byte[]> getCurrentAvatar(@AuthenticationPrincipal CurrentUser currentUser) {
+    public ResponseEntity<byte[]> getCurrentAvatar(
+            @AuthenticationPrincipal CurrentUser currentUser) {
         var avatar = avatarService.getCurrentAvatar(currentUser);
 
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .contentType(MediaType.parseMediaType(avatar.contentType()))
-            .body(avatar.content());
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.parseMediaType(avatar.contentType()))
+                .body(avatar.content());
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteCurrentAvatar(@AuthenticationPrincipal CurrentUser currentUser) {
+    public ResponseEntity<Void> deleteCurrentAvatar(
+            @AuthenticationPrincipal CurrentUser currentUser) {
         avatarService.deleteCurrentAvatar(currentUser);
 
         return ResponseEntity.noContent()
-            .cacheControl(CacheControl.noStore())
-            .build();
+                .cacheControl(CacheControl.noStore())
+                .build();
     }
 }

@@ -36,7 +36,8 @@ class AvatarStorageServiceTest {
     @Test
     void upload_shouldReturnObjectKey_whenSuccessful() throws Exception {
         UUID userId = UUID.randomUUID();
-        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", "fake-image-data".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg",
+                "fake-image-data".getBytes());
 
         String objectKey = avatarStorageService.upload(userId, file);
 

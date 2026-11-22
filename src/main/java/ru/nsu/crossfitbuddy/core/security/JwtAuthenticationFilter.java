@@ -40,25 +40,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecurityErrorHandler securityErrorHandler;
 
     private static final Set<String> PUBLIC_POST_PATHS = Set.of(
-        Paths.AUTH + Paths.AUTH_LOGIN,
-        Paths.AUTH + Paths.AUTH_REGISTER,
-        Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
-        Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
-        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
-        Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM
-    );
+            Paths.AUTH + Paths.AUTH_LOGIN,
+            Paths.AUTH + Paths.AUTH_REGISTER,
+            Paths.AUTH + Paths.AUTH_EMAIL_CONFIRM,
+            Paths.AUTH + Paths.AUTH_EMAIL_RESEND,
+            Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_REQUEST,
+            Paths.AUTH + Paths.AUTH_PASSWORD_RECOVERY_CONFIRM);
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
         return "OPTIONS".equals(request.getMethod())
-            || path.equals(InfraPaths.ACTUATOR_HEALTH)
-            || path.startsWith(InfraPaths.ACTUATOR_HEALTH + "/")
-            || path.equals(InfraPaths.SWAGGER_UI_HTML)
-            || path.startsWith(InfraPaths.SWAGGER_UI + "/")
-            || path.startsWith(InfraPaths.V3_API_DOCS)
-            || ("POST".equals(request.getMethod()) && PUBLIC_POST_PATHS.contains(path));
+                || path.equals(InfraPaths.ACTUATOR_HEALTH)
+                || path.startsWith(InfraPaths.ACTUATOR_HEALTH + "/")
+                || path.equals(InfraPaths.SWAGGER_UI_HTML)
+                || path.startsWith(InfraPaths.SWAGGER_UI + "/")
+                || path.startsWith(InfraPaths.V3_API_DOCS)
+                || ("POST".equals(request.getMethod()) && PUBLIC_POST_PATHS.contains(path));
     }
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -66,10 +65,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain chain
-    ) throws ServletException, IOException {
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
         var headers = Collections.list(request.getHeaders(HttpHeaders.AUTHORIZATION));
         if (headers.isEmpty()) {
             log.debug("Authorization header is null or doesn't implement Bearer format");
@@ -80,14 +78,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             var header = headers.getFirst();
-            if (headers.size() != 1 || !header.regionMatches(true, 0, BEARER_PREFIX, 0, TOKEN_POSITION)) {
+            if (headers.size() != 1
+                    || !header.regionMatches(true, 0, BEARER_PREFIX, 0, TOKEN_POSITION)) {
                 throw new BadCredentialsException("Invalid authorization header");
             }
             var rawJwt = header.substring(TOKEN_POSITION);
             var verifiedJwt = jwtService.verify(rawJwt);
 
-            var user = userAccountRepository.findByIdAndDeletedFalseAndEnabledTrue(verifiedJwt.userId())
-                .orElseThrow(() -> new BadCredentialsException("Invalid account"));
+            var user = userAccountRepository
+                    .findByIdAndDeletedFalseAndEnabledTrue(verifiedJwt.userId())
+                    .orElseThrow(() -> new BadCredentialsException("Invalid account"));
             validateUser(user, verifiedJwt);
 
             var principal = asPrincipal(user, verifiedJwt);
@@ -98,7 +98,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (JwtException | IllegalArgumentException | BadCredentialsException exception) {
             SecurityContextHolder.clearContext();
-            securityErrorHandler.commence(request, response, new BadCredentialsException("Invalid access token"));
+            securityErrorHandler.commence(request, response,
+                    new BadCredentialsException("Invalid access token"));
             return;
         }
 
@@ -111,7 +112,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throw new BadCredentialsException("Account is no longer available");
         }
         if (!user.getRoles().contains(token.activeRole())
-            || (user.getRoles().contains(UserRole.ADMIN) && token.activeRole() != UserRole.ADMIN)) {
+                || (user.getRoles().contains(UserRole.ADMIN)
+                        && token.activeRole() != UserRole.ADMIN)) {
             throw new BadCredentialsException("Account or role is no longer available");
         }
         if (user.getRoles().isEmpty()) {
@@ -122,20 +124,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private CurrentUser asPrincipal(UserAccount user, JwtService.VerifiedToken token) {
         return new CurrentUser(
-            user.getId(),
-            user.getEmail(),
-            token.activeRole().name()
-        );
+                user.getId(),
+                user.getEmail(),
+                token.activeRole().name());
     }
 
-    private UsernamePasswordAuthenticationToken asAuthenticationToken(CurrentUser principal, UserAccount user) {
+    private UsernamePasswordAuthenticationToken asAuthenticationToken(CurrentUser principal,
+            UserAccount user) {
         return new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name()))
-                .toList()
-        );
+                principal,
+                null,
+                user.getRoles().stream()
+                        .map(role -> new SimpleGrantedAuthority(role.name()))
+                        .toList());
     }
 
     private void updateSecurityContext(UsernamePasswordAuthenticationToken authToken) {
