@@ -33,4 +33,14 @@ public final class Paths {
 
     // email (тестовый)
     public static final String EMAIL = "/send-email";
+
+    // general exercises (Task #18704)
+    public static final String GENERAL_EXERCISES = "/v1/general-exercises";
+    public static final String GENERAL_EXERCISES_SET = "/set";
+    public static final String GENERAL_EXERCISES_UPDATE = "/update";
+    public static final String GENERAL_EXERCISES_GET_EQUIPMENTS = "/get/equipments";
+    public static final String GENERAL_EXERCISES_GET_METRICS = "/get/metrics";
+    public static final String GENERAL_EXERCISES_GET_EXERCISES = "/get/all-exercises";
+    public static final String GENERAL_EXERCISES_CATALOG = "/catalog";
+    public static final String GENERAL_EXERCISES_DETAILS = "/{id}";
 }
