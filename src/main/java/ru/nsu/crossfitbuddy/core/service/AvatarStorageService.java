@@ -22,7 +22,7 @@ public class AvatarStorageService {
     @Value("${app.minio.bucket-name}")
     private String bucketName;
 
-    public String uploadAvatar(UUID userId, MultipartFile file) {
+    public String upload(UUID userId, MultipartFile file) {
         return uploadToFolder("avatars/" + userId, file);
     }
 

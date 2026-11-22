@@ -36,7 +36,7 @@ public class AvatarService {
         var existingAvatar = userAvatarRepository.findById(currentUser.id()).orElse(null);
         String oldObjectKey = existingAvatar != null ? existingAvatar.getObjectKey() : null;
 
-        String newObjectKey = avatarStorageService.uploadAvatar(currentUser.id(), file);
+        String newObjectKey = avatarStorageService.upload(currentUser.id(), file);
 
         if (existingAvatar != null) {
             existingAvatar.replace(newObjectKey, file.getContentType(), Long.valueOf(file.getSize()));
