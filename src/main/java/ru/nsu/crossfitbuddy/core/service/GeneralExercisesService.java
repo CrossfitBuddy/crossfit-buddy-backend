@@ -78,6 +78,8 @@ public class GeneralExercisesService {
       throw new IllegalArgumentException(
           "In exercises update request filde id must not be null");
     }
+    requestValidate(request);
+
     updateExerciseData(request);
   }
 
@@ -163,6 +165,11 @@ public class GeneralExercisesService {
                         + equipment.id() + " не найдено"));
             dbEquipment.getEquipmentProperties().clear();
             updateEquipmentsData(dbEquipment, equipment);
+            if (!exercise.getExerciseEquipments().stream()
+                .allMatch(eq -> eq.getId() == dbEquipment.getId())) {
+              exercise.getExerciseEquipments().add(dbEquipment);
+            }
+
             return;
           }
           var newEquipment = new ExerciseEquipment();
@@ -182,6 +189,10 @@ public class GeneralExercisesService {
         var dbMetric = exerciseMetricRepository.findById(metric.id())
             .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
         setMetricsData(dbMetric, metric);
+        if (!exercise.getExercisesMetrics().stream()
+            .allMatch(m -> m.getId() == dbMetric.getId())) {
+          exercise.getExercisesMetrics().add(dbMetric);
+        }
         return;
       }
       var dbMetric = new ExercisesMetrics();

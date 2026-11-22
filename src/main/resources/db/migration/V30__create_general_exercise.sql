@@ -12,3 +12,5 @@ ALTER TABLE exercise
 
 ALTER TABLE exercise
     ALTER COLUMN description SET NOT NULL;
+
+ALTER TABLE exercise ALTER COLUMN name TYPE VARCHAR(255);
