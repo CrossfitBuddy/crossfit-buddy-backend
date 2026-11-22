@@ -38,7 +38,7 @@ class AvatarStorageServiceTest {
         UUID userId = UUID.randomUUID();
         MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", "fake-image-data".getBytes());
 
-        String objectKey = avatarStorageService.upload(userId, file);
+        String objectKey = avatarStorageService.uploadAvatar(userId, file);
 
         assertNotNull(objectKey);
         assertTrue(objectKey.startsWith("avatars/" + userId + "/"));

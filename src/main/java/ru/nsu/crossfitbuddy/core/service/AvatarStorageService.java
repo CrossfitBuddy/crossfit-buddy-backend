@@ -22,8 +22,12 @@ public class AvatarStorageService {
     @Value("${app.minio.bucket-name}")
     private String bucketName;
 
-    public String upload(UUID userId, MultipartFile file) {
-        String objectKey = "avatars/" + userId + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+    public String uploadAvatar(UUID userId, MultipartFile file) {
+        return uploadToFolder("avatars/" + userId, file);
+    }
+
+    public String uploadToFolder(String folderPath, MultipartFile file) {
+        String objectKey = folderPath + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
         try {
             minioClient.putObject(
                 PutObjectArgs.builder()
@@ -36,7 +40,7 @@ public class AvatarStorageService {
             return objectKey;
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to upload avatar to MinIO: " + e.getMessage());
+                "Failed to upload file to MinIO: " + e.getMessage());
         }
     }
 
@@ -50,7 +54,7 @@ public class AvatarStorageService {
             );
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to delete avatar from MinIO: " + e.getMessage());
+                "Failed to delete file from MinIO: " + e.getMessage());
         }
     }
 
@@ -64,7 +68,7 @@ public class AvatarStorageService {
             return stream.readAllBytes();
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
-                "Failed to download avatar from MinIO: " + e.getMessage());
+                "Failed to download file from MinIO: " + e.getMessage());
         }
     }
 }

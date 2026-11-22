@@ -38,7 +38,7 @@ class AvatarStorageServiceIntegrationTest extends AbstractRepositoryTest {
 
         doNothing().when(minioClient).removeObject(any(RemoveObjectArgs.class));
 
-        String objectKey = avatarStorageService.upload(userId, file);
+        String objectKey = avatarStorageService.uploadAvatar(userId, file);
 
         assertNotNull(objectKey);
         assertTrue(objectKey.contains(userId.toString()));
