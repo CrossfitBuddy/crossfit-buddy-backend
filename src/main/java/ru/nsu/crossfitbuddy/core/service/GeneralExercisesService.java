@@ -80,6 +80,8 @@ public class GeneralExercisesService {
     }
     requestValidate(request);
 
+    log.warn("Валидация обнавления упражнения успешна " + request.name());
+
     updateExerciseData(request);
   }
 
