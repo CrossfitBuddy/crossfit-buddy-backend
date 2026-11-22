@@ -28,8 +28,7 @@ public class S3FilesController {
   private final S3FilesService s3FilesService;
 
   @PostMapping(Paths.FILES_UPPLOAD)
-  @AdminAuthority
-  public S3UploadURLDTO pendingRequest(@RequestBody S3UploadURLRequestDTO request,
+  public S3UploadURLDTO pendingRequestPublic(@RequestBody S3UploadURLRequestDTO request,
       @AuthenticationPrincipal CurrentUser currentUser) {
     return s3FilesService.requestPending(request, FileVisibility.PUBLIC, currentUser);
 

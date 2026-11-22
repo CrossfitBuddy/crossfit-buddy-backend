@@ -195,9 +195,8 @@ public class GeneralExercisesService {
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
 
-    var removed = exercise.getExercisesMetrics()
+    exercise.getExercisesMetrics()
         .removeIf(metric -> !newMetricId.contains(metric.getId()));
-    log.info("БЫЛО УДАЛЕНО !!! - " + removed);
   }
 
   private void removeExscessEquipments(Exercise exercise, List<ExerciseEquipmentRequest> request) {
