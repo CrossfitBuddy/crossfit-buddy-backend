@@ -75,7 +75,7 @@ class GeneralExercisesServiceTest {
         var req = request(null, "Жим", List.of(metric(null, "Вес")),
             List.of(equipment(null, "Штанга")), image, video);
 
-        when(storageService.upload(anyString(), any())).thenReturn("media-url");
+        when(storageService.uploadToFolder(anyString(), any())).thenReturn("media-url");
 
         service.createExercise(req);
 
@@ -83,7 +83,7 @@ class GeneralExercisesServiceTest {
         verify(exerciseRepository).save(captor.capture());
         assertThat(captor.getValue().getName()).isEqualTo("Жим");
         assertThat(captor.getValue().getImageUrl()).isEqualTo("media-url");
-        verify(storageService, times(2)).upload(anyString(), any());
+        verify(storageService, times(2)).uploadToFolder(anyString(), any());
     }
 
     @Test

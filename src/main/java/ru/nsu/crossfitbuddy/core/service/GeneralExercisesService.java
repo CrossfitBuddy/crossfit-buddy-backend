@@ -81,12 +81,12 @@ public class GeneralExercisesService {
 
     private void handleMediaUpload(GeneralExercises exercise, MultipartFile imageFile, MultipartFile videoFile) {
         if (imageFile != null && !imageFile.isEmpty()) {
-            String imageUrl = avatarStorageService.upload("exercises/images", imageFile);
+            String imageUrl = avatarStorageService.uploadToFolder("exercises/images", imageFile);
             exercise.setImageUrl(imageUrl);
         }
 
         if (videoFile != null && !videoFile.isEmpty()) {
-            String videoUrl = avatarStorageService.upload("exercises/videos", videoFile);
+            String videoUrl = avatarStorageService.uploadToFolder("exercises/videos", videoFile);
             exercise.setVideoUrl(videoUrl);
         }
     }
