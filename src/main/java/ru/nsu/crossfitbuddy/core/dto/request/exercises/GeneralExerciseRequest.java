@@ -7,19 +7,22 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
+import lombok.Singular;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseCategory;
 
+@Builder
 public record GeneralExerciseRequest(
 
-        UUID id,
+    UUID id,
 
-        @NotBlank(message = "Необходимо указать название упражнения") @Size(max = 255, message = "Длинна названия упражнения не должна превышать 255 символов") String name,
-        @NotBlank(message = "Необходимо указать описание упражнения") String description,
-        @Valid List<ExercisesMetricsRequest> exercisesMetrics,
-        @Valid List<ExerciseEquipmentRequest> exercisesEquipments,
+    @NotBlank(message = "Необходимо указать название упражнения") @Size(max = 255, message = "Длинна названия упражнения не должна превышать 255 символов") String name,
+    @NotBlank(message = "Необходимо указать описание упражнения") String description,
+    @Singular @Valid List<ExercisesMetricsRequest> exercisesMetrics,
+    @Singular @Valid List<ExerciseEquipmentRequest> exercisesEquipments,
 
-        @NotNull(message = "Необходимо указать категорию упражнения") ExerciseCategory category,
+    @NotNull(message = "Необходимо указать категорию упражнения") ExerciseCategory category,
 
-        UUID imageFileId,
-        UUID videoFileId) {
+    UUID imageFileId,
+    UUID videoFileId) {
 }

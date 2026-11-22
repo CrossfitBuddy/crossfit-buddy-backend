@@ -1,13 +1,14 @@
 package ru.nsu.crossfitbuddy.core.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.validator.constraints.time.DurationMin;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -35,58 +36,13 @@ public class S3FilesService {
   private final ProfileService profileService;
   private final S3FileRepository s3FileRepository;
 
-  public S3UploadURLDTO requestPending(S3UploadURLRequestDTO request, FileVisibility visibility,
-      CurrentUser user) {
+  @Value("${spring.s3File.pendingTime}")
+  @DurationMin(seconds = 1)
+  private Duration PENDING_TIME;
 
-    var profile = profileService.findProfileOrThrow(user.id(), true);
-
-    var file = createFile(request, visibility, profile.getUser());
-
-    var expiresAt = Instant.now().plus(10, ChronoUnit.MINUTES);
-    var expiresAtLocalTime = LocalDateTime.ofInstant(expiresAt, ZoneId.of("Europe/Moscow"));
-
-    file.setExpireAt(expiresAt);
-
-    String objectKey = createObjectKey(file.getId(), request.fileName(), request.contentType());
-
-    file.setObjectKey(objectKey);
-
-    try {
-      String pendingUrl = minioStorageService.pending(objectKey);
-
-      var response = new S3UploadURLDTO(file.getId(), pendingUrl,
-          new HashMap<String, String>(),
-          expiresAtLocalTime);
-
-      return response;
-    } catch (MinioException e) {
-      s3FileRepository.delete(file);
-      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "", e.getMessage());
-    }
-  }
-
-  public boolean isFileExist(UUID fileId, String fileName, MimoType contentType) {
-    var objectKey = createObjectKey(fileId, fileName, contentType);
-    return minioStorageService.isObjectExist(objectKey);
-  }
-
-  public void resumePending(UUID fileId) {
-    var file = s3FileRepository.findById(fileId)
-        .orElseThrow(() -> new EntityNotFoundException());
-    file.setStatus(S3FileStatus.READY);
-  }
-
-  public S3File setFileReadyAndGet(UUID fileId) {
-    var file = s3FileRepository.findByIdReadyAndNotExp(fileId)
-        .orElseThrow(
-            () -> new EntityNotFoundException(
-                "Сущность файла c id " + fileId + " не найдена в базе"));
-    if (!isFileExist(fileId, file.getFileName(), file.getType())) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "", "file dose not exist in MinIo");
-    }
-    file.setStatus(S3FileStatus.READY);
-    return file;
-  }
+  @Value("${spring.s3File.getTime}")
+  @DurationMin(seconds = 1)
+  private Duration GET_TIME;
 
   public S3DownloadURLDTO getDownloadLink(UUID fileId, CurrentUser user) {
     var creator = profileService.findProfileOrThrow(user.id(), true);
@@ -104,13 +60,75 @@ public class S3FilesService {
 
     try {
       String url = minioStorageService.getDownloadUrl(objectKey);
-      return new S3DownloadURLDTO(fileId, url, Instant.now().plus(10, ChronoUnit.MINUTES));
+      return new S3DownloadURLDTO(fileId, url, Instant.now().plus(GET_TIME));
 
     } catch (Exception e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_ERROR",
           "minio erro when try get download link" + e.getMessage());
     }
 
+  }
+
+  public boolean isFileExist(UUID fileId, String fileName, MimoType contentType) {
+    var objectKey = createObjectKey(fileId, fileName, contentType);
+    return minioStorageService.isObjectExist(objectKey);
+  }
+
+  public S3UploadURLDTO requestPending(S3UploadURLRequestDTO request, FileVisibility visibility,
+      CurrentUser user) {
+
+    var profile = profileService.findProfileOrThrow(user.id(), true);
+
+    var file = createFile(request, visibility, profile.getUser());
+
+    var expiresAt = Instant.now().plus(PENDING_TIME);
+    var expiresAtLocalTime = LocalDateTime.ofInstant(expiresAt, ZoneId.of("Europe/Moscow"));
+
+    file.setExpireAt(expiresAt);
+
+    String objectKey = createObjectKey(file.getId(), request.fileName(), request.contentType());
+
+    file.setObjectKey(objectKey);
+
+    try {
+      String pendingUrl = minioStorageService.pending(objectKey);
+
+      var response = new S3UploadURLDTO(file.getId(), pendingUrl,
+          new HashMap<String, String>(),
+          expiresAtLocalTime);
+      return response;
+
+    } catch (MinioException e) {
+      s3FileRepository.delete(file);
+      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "", e.getMessage());
+    }
+  }
+
+  public void resumePending(UUID fileId) {
+    var file = s3FileRepository.findById(fileId)
+        .orElseThrow(() -> new EntityNotFoundException());
+    file.setStatus(S3FileStatus.READY);
+  }
+
+  /**
+   * Помечает файл Ready и возвращает сущность файла из репозитория
+   * Если файл не будет омечан Ready в течении {} минут, он станет недоступен
+   * 
+   * @param fileId
+   * @return S3File
+   * @throws EntityNotFoundException
+   * @throws ApiException
+   */
+  public S3File setFileReadyAndGet(UUID fileId) {
+    var file = s3FileRepository.findByIdReadyAndNotExp(fileId)
+        .orElseThrow(
+            () -> new EntityNotFoundException(
+                "Сущность файла c id " + fileId + " не найдена в базе"));
+    if (!isFileExist(fileId, file.getFileName(), file.getType())) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "", "file dose not exist in MinIo");
+    }
+    file.setStatus(S3FileStatus.READY);
+    return file;
   }
 
   private S3File createFile(S3UploadURLRequestDTO request, FileVisibility visibility,
