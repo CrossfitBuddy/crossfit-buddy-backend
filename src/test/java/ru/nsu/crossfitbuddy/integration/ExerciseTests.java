@@ -348,6 +348,23 @@ class ExerciseTests extends AbstractRepositoryTest {
     checkFieldsEquals(saved, request);
   }
 
+  @Test
+  @Transactional
+  void twoExerc() {
+    var account = createTestAccount();
+    var request = generalExercise().clearExercisesEquipments()
+        .exercisesEquipment(defaultBarbell().build())
+        .exercisesEquipment(defaultBarbell().name("new name").build()).build();
+
+    entityManager.flush();
+    entityManager.clear();
+
+    var exercise = saveExercise(request, account);
+
+    var saved = generalExercisesRepository.findById(exercise.getId()).get();
+    checkFieldsEquals(saved, request);
+  }
+
   private GeneralExerciseRequest testDataWithImg(UUID id) {
     return generalExercise().imageFileId(id).videoFileId(id)
         .clearExercisesEquipments()

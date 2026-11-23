@@ -167,8 +167,8 @@ public class GeneralExercisesService {
                         + equipment.id() + " не найдено"));
             dbEquipment.getEquipmentProperties().clear();
             updateEquipmentsData(dbEquipment, equipment);
-            if (!exercise.getExerciseEquipments().stream()
-                .allMatch(eq -> eq.getId() == dbEquipment.getId())) {
+            if (exercise.getExerciseEquipments().stream()
+                .filter(m -> m.getId() == dbEquipment.getId()).count() == 0) {
               exercise.getExerciseEquipments().add(dbEquipment);
             }
 
@@ -191,8 +191,8 @@ public class GeneralExercisesService {
         var dbMetric = exerciseMetricRepository.findById(metric.id())
             .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
         setMetricsData(dbMetric, metric);
-        if (!exercise.getExercisesMetrics().stream()
-            .allMatch(m -> m.getId() == dbMetric.getId())) {
+        if (exercise.getExercisesMetrics().stream()
+            .filter(m -> m.getId() == dbMetric.getId()).count() == 0) {
           exercise.getExercisesMetrics().add(dbMetric);
         }
         return;
