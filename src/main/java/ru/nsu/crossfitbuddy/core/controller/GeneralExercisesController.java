@@ -1,15 +1,11 @@
 package ru.nsu.crossfitbuddy.core.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -20,6 +16,7 @@ import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExerciseEquipmentRespons
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse;
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
+import ru.nsu.crossfitbuddy.core.entity.ExerciseCategory;
 import ru.nsu.crossfitbuddy.core.service.GeneralExercisesService;
 
 @RestController
@@ -60,4 +57,16 @@ public class GeneralExercisesController {
     return generalExercisesService.getAllExercise();
   }
 
+  @GetMapping(Paths.GENERAL_EXERCISES_CATALOG)
+  public List<GeneralExerciseResponse> getCatalog(
+          @RequestParam(required = false) String name,
+          @RequestParam(required = false) ExerciseCategory category,
+          @RequestParam(required = false) UUID equipmentId) {
+    return generalExercisesService.getExercisesCatalog(name, category, equipmentId);
+  }
+
+  @GetMapping(Paths.GENERAL_EXERCISES_DETAILS)
+  public GeneralExerciseResponse getDetails(@PathVariable UUID id) {
+    return generalExercisesService.getExerciseDetails(id);
+  }
 }
