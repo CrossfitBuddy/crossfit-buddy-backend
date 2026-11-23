@@ -24,6 +24,7 @@ import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.entity.Exercise;
+import ru.nsu.crossfitbuddy.core.entity.ExerciseCategory;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
@@ -102,6 +103,40 @@ public class GeneralExercisesService {
 
   }
 
+  @Transactional(readOnly = true)
+  public List<GeneralExerciseResponse> getExercisesCatalog(String searchName, ExerciseCategory category, UUID equipmentId) {
+    org.springframework.data.jpa.domain.Specification<Exercise> spec = (root, query, cb) -> {
+      List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+      if (searchName != null && !searchName.isBlank()) {
+        predicates.add(cb.like(cb.lower(root.get("name")), "%" + searchName.toLowerCase() + "%"));
+      }
+      if (category != null) {
+        predicates.add(cb.equal(root.get("category"), category));
+      }
+      if (equipmentId != null) {
+        jakarta.persistence.criteria.Join<Exercise, ExerciseEquipment> equipmentJoin =
+                root.join("exerciseEquipments", jakarta.persistence.criteria.JoinType.INNER);
+        predicates.add(cb.equal(equipmentJoin.get("id"), equipmentId));
+      }
+
+      query.distinct(true);
+      return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+    };
+
+    org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "name");
+
+    List<Exercise> exercises = generalExercisesRepository.findAll(spec, sort);
+    return generalExerciseMapper.toResponseList(exercises);
+  }
+
+  @Transactional(readOnly = true)
+  public GeneralExerciseResponse getExerciseDetails(UUID id) {
+    Exercise exercise = generalExercisesRepository.findByIdWithDetails(id)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Упражнение с id " + id + " не найдено"));
+    return generalExerciseMapper.toResponse(exercise);
+  }
+
   private void updateExerciseData(GeneralExerciseRequest request) {
 
     var exercise = generalExercisesRepository.findById(request.id())
@@ -136,10 +171,10 @@ public class GeneralExercisesService {
     exercise.setUpdatedAt(Instant.now());
     exercise.setCreatedAt(Instant.now());
 
-    List<ExercisesMetrics> metrics = createExercisesMetrics(request.exercisesMetrics());
+    Set<ExercisesMetrics> metrics = createExercisesMetrics(request.exercisesMetrics());
     exercise.setExercisesMetrics(metrics);
 
-    List<ExerciseEquipment> equipments = createExerciseEquipments(request.exercisesEquipments());
+    Set<ExerciseEquipment> equipments = createExerciseEquipments(request.exercisesEquipments());
     exercise.setExerciseEquipments(equipments);
   }
 
@@ -223,9 +258,9 @@ public class GeneralExercisesService {
 
   }
 
-  private List<ExercisesMetrics> createExercisesMetrics(List<ExercisesMetricsRequest> requests) {
+  private Set<ExercisesMetrics> createExercisesMetrics(List<ExercisesMetricsRequest> requests) {
     if (requests == null) {
-      return new ArrayList<>();
+      return new java.util.HashSet<>();
     }
 
     return requests.stream().map(metric -> {
@@ -235,28 +270,22 @@ public class GeneralExercisesService {
       }
       var dbMetric = new ExercisesMetrics();
       return setMetricsData(dbMetric, metric);
-    }).collect(Collectors.toCollection(ArrayList::new));
-
+    }).collect(java.util.stream.Collectors.toSet());
   }
 
-  private List<ExerciseEquipment> createExerciseEquipments(
-      List<ExerciseEquipmentRequest> requests) {
-
+  private Set<ExerciseEquipment> createExerciseEquipments(List<ExerciseEquipmentRequest> requests) {
     if (requests == null) {
-      return new ArrayList<>();
+      return new java.util.HashSet<>();
     }
 
-    return requests.stream()
-        .map(equipment -> {
-          if (equipment.id() != null) {
-            return exerciseEquipmentRepository.findById(equipment.id())
-                .orElseThrow(
-                    () -> new EntityNotFoundException("Оборудование с id: "
-                        + equipment.id() + " не найдено"));
-          }
-          var dbEquipment = new ExerciseEquipment();
-          return setEquipmentsData(dbEquipment, equipment);
-        }).collect(Collectors.toCollection(ArrayList::new));
+    return requests.stream().map(equipment -> {
+      if (equipment.id() != null) {
+        return exerciseEquipmentRepository.findById(equipment.id())
+                .orElseThrow(() -> new EntityNotFoundException("Оборудование с id: " + equipment.id() + " не найдено"));
+      }
+      var dbEquipment = new ExerciseEquipment();
+      return setEquipmentsData(dbEquipment, equipment);
+    }).collect(java.util.stream.Collectors.toSet());
   }
 
   private ExercisesMetrics setMetricsData(ExercisesMetrics metric,
