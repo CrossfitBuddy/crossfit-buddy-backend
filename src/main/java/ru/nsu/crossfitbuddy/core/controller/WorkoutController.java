@@ -2,29 +2,45 @@ package ru.nsu.crossfitbuddy.core.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Max;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import ru.nsu.crossfitbuddy.auth.security.annotation.ActiveRoleIn;
+import ru.nsu.crossfitbuddy.core.dto.request.WorkoutListRequest;
+import ru.nsu.crossfitbuddy.core.dto.request.WorkoutSortingKey;
+import ru.nsu.crossfitbuddy.core.dto.response.ErrorResponse;
+import ru.nsu.crossfitbuddy.core.dto.response.WorkoutListResponse;
+import ru.nsu.crossfitbuddy.core.dto.workout.OwnWorkoutRequest;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutErrorResponse;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
 import ru.nsu.crossfitbuddy.core.entity.WorkoutStatus;
 import ru.nsu.crossfitbuddy.core.entity.WorkoutType;
-import ru.nsu.crossfitbuddy.core.dto.response.WorkoutListResponse;
+import ru.nsu.crossfitbuddy.core.service.WorkoutCreationService;
 import ru.nsu.crossfitbuddy.core.service.WorkoutService;
-import ru.nsu.crossfitbuddy.core.dto.request.WorkoutListRequest;
-import ru.nsu.crossfitbuddy.core.dto.request.WorkoutSortingKey;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,6 +51,30 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkoutController {
     private final WorkoutService workouts;
+    private final WorkoutCreationService creation;
+
+    @PostMapping
+    @ActiveRoleIn(UserRole.ATHLETE)
+    @ApiResponses({
+        @ApiResponse(responseCode = "201",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))),
+        @ApiResponse(responseCode = "400",
+            content = @Content(schema = @Schema(implementation = WorkoutErrorResponse.class))),
+        @ApiResponse(responseCode = "401",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "415",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<WorkoutResponse> create(
+        @Parameter(hidden = true) @AuthenticationPrincipal CurrentUser currentUser,
+        @Valid @RequestBody OwnWorkoutRequest request) {
+        var workout = creation.createOwn(currentUser, request);
+        var location = ServletUriComponentsBuilder.fromCurrentRequestUri()
+            .path("/{id}").buildAndExpand(workout.id()).toUri();
+        return ResponseEntity.created(location).body(workout);
+    }
 
     @GetMapping
     @Operation(summary = "Получить доступные тренировки",
