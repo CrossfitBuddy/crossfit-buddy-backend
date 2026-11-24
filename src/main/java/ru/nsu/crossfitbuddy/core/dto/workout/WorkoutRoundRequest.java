@@ -2,14 +2,11 @@ package ru.nsu.crossfitbuddy.core.dto.workout;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-
 import ru.nsu.crossfitbuddy.core.dto.workout.json.UnsupportedWorkoutFieldException;
 import ru.nsu.crossfitbuddy.core.dto.workout.json.WholeNumberDeserializer;
 
@@ -20,7 +17,7 @@ public record WorkoutRoundRequest(
     @NotNull
     @Positive
     @JsonDeserialize(using = WholeNumberDeserializer.class)
-    @Schema(description = "Number of repetitions of the entire round", example = "1")
+    @Schema(example = "1")
     Integer repeatCount,
 
     @NotEmpty

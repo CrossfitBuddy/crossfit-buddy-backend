@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -25,12 +26,15 @@ class AvatarStorageServiceTest {
     @Mock
     private MinioClient minioClient;
 
+    @InjectMocks
+    private MinioStorageService minioStorageService;
+
     private AvatarStorageService avatarStorageService;
 
     @BeforeEach
     void setUp() {
-        avatarStorageService = new AvatarStorageService(minioClient);
-        ReflectionTestUtils.setField(avatarStorageService, "bucketName", "test-bucket");
+        avatarStorageService = new AvatarStorageService(minioStorageService);
+        ReflectionTestUtils.setField(minioStorageService, "bucketName", "test-bucket");
     }
 
     @Test
@@ -56,9 +60,9 @@ class AvatarStorageServiceTest {
 
     @Test
     void delete_shouldCallMinioRemoveObject() throws Exception {
-        String objectKey = "avatars/test-key.jpg";
+        String objectKey = "avatar/test-key.jpg";
 
-        avatarStorageService.delete(objectKey);
+        minioStorageService.delete(objectKey);
 
         ArgumentCaptor<RemoveObjectArgs> captor = ArgumentCaptor.forClass(RemoveObjectArgs.class);
         verify(minioClient, times(1)).removeObject(captor.capture());

@@ -8,6 +8,12 @@ public final class Paths {
     // workouts
     public static final String WORKOUTS = "/v1/workouts";
 
+    // complex
+    public static final String COMPLEX = "/v1/complex";
+    public static final String COMPLEX_FORMATS = "/formats";
+    public static final String COMPLEX_FORMATS_BY_TYPE = "/{type}";
+
+
     // auth
     public static final String AUTH = "/v1/auth";
     public static final String AUTH_LOGIN = "/login";
@@ -19,6 +25,11 @@ public final class Paths {
     public static final String AUTH_PASSWORD_RECOVERY_REQUEST = "/password/request";
     public static final String AUTH_PASSWORD_RECOVERY_CONFIRM = "/password/confirm";
 
+    // files
+    public static final String FILES = "/v1/files";
+    public static final String FILES_UPPLOAD = "/upload-url";
+    public static final String FILES_DOWNLOAD = "/{fileId}/download-url";
+
     // profile
     public static final String PROFILE = "/v1/users/me";
 
@@ -27,4 +38,12 @@ public final class Paths {
 
     // email (тестовый)
     public static final String EMAIL = "/send-email";
+
+    public static final String GENERAL_EXERCISES = "v1/general-exercises";
+    public static final String GENERAL_EXERCISES_SET = "/set";
+    public static final String GENERAL_EXERCISES_UPDATE = "/update";
+    public static final String GENERAL_EXERCISES_GET_EQUIPMENTS = "/get/equipments";
+    public static final String GENERAL_EXERCISES_GET_METRICS = "/get/metrics";
+    public static final String GENERAL_EXERCISES_GET_EXERCISES = "/get/all-exercises";
+
 }

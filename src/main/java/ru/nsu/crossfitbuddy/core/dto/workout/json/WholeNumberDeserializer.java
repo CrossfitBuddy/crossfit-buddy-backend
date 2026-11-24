@@ -13,8 +13,7 @@ public final class WholeNumberDeserializer extends StdDeserializer<Integer> {
     }
 
     @Override
-    public Integer deserialize(JsonParser parser, DeserializationContext context)
-    throws IOException {
+    public Integer deserialize(JsonParser parser, DeserializationContext context) throws IOException {
         if (!parser.hasToken(JsonToken.VALUE_NUMBER_INT)) {
             return (Integer) context.handleUnexpectedToken(Integer.class, parser);
         }

@@ -1,47 +1,53 @@
 {
   "EMOM": {
     "request": {
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
-          "stageFormatId": 1,
+          "workoutStageId": 1,
           "format": "EMOM",
           "rounds": [
             {
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "exerciseId": "11111111-1111-4111-8111-111111111111",
                   "repetitions": 10,
-                  "weightKg": 20.5
+                  "durationSeconds": 30
                 }
               ]
             }
           ],
-          "params": {
-            "duration": 10.0,
-            "interval": 1.0
-          }
+          "timeLimitSeconds": 1200,
+          "intervalSeconds": 60
         }
       ]
     },
     "response": {
-      "id": "22222222-2222-4222-8222-000000000001",
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "id": "22222222-2222-4222-8222-222222222222",
       "createdBy": "33333333-3333-4333-8333-333333333333",
       "type": "OWN",
       "status": "READY",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
+          "workoutStageId": 1,
+          "format": "EMOM",
+          "timeLimitSeconds": 1200,
+          "intervalSeconds": 60,
           "id": "44444444-4444-4444-8444-444444444444",
           "position": 1,
-          "stageFormatId": 1,
-          "format": "EMOM",
           "rounds": [
             {
               "id": "55555555-5555-4555-8555-555555555555",
               "position": 1,
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "id": "66666666-6666-4666-8666-666666666666",
@@ -49,60 +55,63 @@
                   "parameters": {
                     "exerciseId": "11111111-1111-4111-8111-111111111111",
                     "repetitions": 10,
-                    "weightKg": 20.5
+                    "durationSeconds": 30
                   }
                 }
               ]
             }
-          ],
-          "params": {
-            "duration": 10.0,
-            "interval": 1.0
-          }
+          ]
         }
       ]
     }
   },
   "FOR_TIME": {
     "request": {
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
-          "stageFormatId": 1,
+          "workoutStageId": 1,
           "format": "FOR_TIME",
           "rounds": [
             {
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "exerciseId": "11111111-1111-4111-8111-111111111111",
                   "repetitions": 10,
-                  "weightKg": 20.5
+                  "durationSeconds": 30
                 }
               ]
             }
           ],
-          "params": {}
+          "targetRounds": 5
         }
       ]
     },
     "response": {
-      "id": "22222222-2222-4222-8222-000000000002",
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "id": "22222222-2222-4222-8222-222222222222",
       "createdBy": "33333333-3333-4333-8333-333333333333",
       "type": "OWN",
       "status": "READY",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
+          "workoutStageId": 1,
+          "format": "FOR_TIME",
+          "targetRounds": 5,
           "id": "44444444-4444-4444-8444-444444444444",
           "position": 1,
-          "stageFormatId": 1,
-          "format": "FOR_TIME",
           "rounds": [
             {
               "id": "55555555-5555-4555-8555-555555555555",
               "position": 1,
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "id": "66666666-6666-4666-8666-666666666666",
@@ -110,59 +119,63 @@
                   "parameters": {
                     "exerciseId": "11111111-1111-4111-8111-111111111111",
                     "repetitions": 10,
-                    "weightKg": 20.5
+                    "durationSeconds": 30
                   }
                 }
               ]
             }
-          ],
-          "params": {}
+          ]
         }
       ]
     }
   },
   "AMRAP": {
     "request": {
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
-          "stageFormatId": 1,
+          "workoutStageId": 1,
           "format": "AMRAP",
           "rounds": [
             {
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "exerciseId": "11111111-1111-4111-8111-111111111111",
                   "repetitions": 10,
-                  "weightKg": 20.5
+                  "durationSeconds": 30
                 }
               ]
             }
           ],
-          "params": {
-            "duration": 10.0
-          }
+          "timeLimitSeconds": 1200
         }
       ]
     },
     "response": {
-      "id": "22222222-2222-4222-8222-000000000003",
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "id": "22222222-2222-4222-8222-222222222222",
       "createdBy": "33333333-3333-4333-8333-333333333333",
       "type": "OWN",
       "status": "READY",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
+          "workoutStageId": 1,
+          "format": "AMRAP",
+          "timeLimitSeconds": 1200,
           "id": "44444444-4444-4444-8444-444444444444",
           "position": 1,
-          "stageFormatId": 1,
-          "format": "AMRAP",
           "rounds": [
             {
               "id": "55555555-5555-4555-8555-555555555555",
               "position": 1,
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "id": "66666666-6666-4666-8666-666666666666",
@@ -170,62 +183,61 @@
                   "parameters": {
                     "exerciseId": "11111111-1111-4111-8111-111111111111",
                     "repetitions": 10,
-                    "weightKg": 20.5
+                    "durationSeconds": 30
                   }
                 }
               ]
             }
-          ],
-          "params": {
-            "duration": 10.0
-          }
+          ]
         }
       ]
     }
   },
-  "TABATA": {
+  "FREE": {
     "request": {
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
-          "stageFormatId": 1,
-          "format": "TABATA",
+          "workoutStageId": 1,
+          "format": "FREE",
           "rounds": [
             {
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "exerciseId": "11111111-1111-4111-8111-111111111111",
                   "repetitions": 10,
-                  "weightKg": 20.5
+                  "durationSeconds": 30
                 }
               ]
             }
-          ],
-          "params": {
-            "duration": 10.0,
-            "interval": 0.5
-          }
+          ]
         }
       ]
     },
     "response": {
-      "id": "22222222-2222-4222-8222-000000000004",
-      "datetime": "2026-11-16T18:30:00+07:00",
+      "id": "22222222-2222-4222-8222-222222222222",
       "createdBy": "33333333-3333-4333-8333-333333333333",
       "type": "OWN",
       "status": "READY",
+      "name": "Тренировка",
+      "coach": "Иван Иванов",
+      "datetime": "2026-11-20T18:00:00+07:00",
+      "durationSeconds": 1800,
       "stages": [
         {
+          "workoutStageId": 1,
+          "format": "FREE",
           "id": "44444444-4444-4444-8444-444444444444",
           "position": 1,
-          "stageFormatId": 1,
-          "format": "TABATA",
           "rounds": [
             {
               "id": "55555555-5555-4555-8555-555555555555",
               "position": 1,
-              "repeatCount": 1,
+              "repeatCount": 2,
               "exercises": [
                 {
                   "id": "66666666-6666-4666-8666-666666666666",
@@ -233,16 +245,12 @@
                   "parameters": {
                     "exerciseId": "11111111-1111-4111-8111-111111111111",
                     "repetitions": 10,
-                    "weightKg": 20.5
+                    "durationSeconds": 30
                   }
                 }
               ]
             }
-          ],
-          "params": {
-            "duration": 10.0,
-            "interval": 0.5
-          }
+          ]
         }
       ]
     }
