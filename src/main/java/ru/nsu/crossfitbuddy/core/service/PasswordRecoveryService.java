@@ -21,7 +21,6 @@ import ru.nsu.crossfitbuddy.config.PasswordRecoveryProperties;
 import ru.nsu.crossfitbuddy.core.dto.request.PasswordResetConfirmation;
 import ru.nsu.crossfitbuddy.core.entity.PasswordResetCode;
 import ru.nsu.crossfitbuddy.core.exception.ApiException;
-import ru.nsu.crossfitbuddy.core.mail.mailTemplates.RawMailTemplate;
 import ru.nsu.crossfitbuddy.core.mail.service.MailCreator;
 import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.PasswordResetCodeRepository;

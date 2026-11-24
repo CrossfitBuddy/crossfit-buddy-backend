@@ -79,7 +79,11 @@ class WorkoutDetailsApiIntegrationTest extends AbstractRepositoryTest {
         new TransactionTemplate(txManager).executeWithoutResult(status -> {
             var amrap = new ComplexFormat(ComplexFormatType.AMRAP, "AMRAP", "AMRAP описание");
             var wod = WorkoutStage.builder().id(3).code("WOD").name("WOD").build();
-            var burpee = Exercise.builder().name("Приседания").build();
+            var burpee = new Exercise();
+            burpee.setName("Приседания");
+            burpee.setDescription("Описание приесдания");
+            burpee.setCategory(ExerciseCategory.CARDIO);
+            burpee.setCommon(true);
             em.persist(burpee);
 
             var complex = Complex.builder()
