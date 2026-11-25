@@ -36,6 +36,9 @@ public class ExercisesMetrics {
     @Pattern(regexp = "^[a-zA-Zа-яА-ЯёЁ ]+$", message = "Допускаются только буквы и пробелы")
     private String unit;
 
+    @Column(name = "metric_code", length = 50)
+    private String metricCode;
+
     @ManyToMany(mappedBy = "exercisesMetrics")
     private List<Exercise> generalExercises;
 

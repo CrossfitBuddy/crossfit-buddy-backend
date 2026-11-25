@@ -1,14 +1,11 @@
 package ru.nsu.crossfitbuddy.core.service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +35,7 @@ import ru.nsu.crossfitbuddy.core.mapper.GeneralExerciseMapper;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseEquipmentRepository;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseMetricRepository;
 import ru.nsu.crossfitbuddy.core.repository.GeneralExercisesRepository;
+import ru.nsu.crossfitbuddy.core.specification.ExerciseSpecification;
 
 @Service
 @RequiredArgsConstructor
@@ -105,28 +103,20 @@ public class GeneralExercisesService {
 
   @Transactional(readOnly = true)
   public List<GeneralExerciseResponse> getExercisesCatalog(String searchName, ExerciseCategory category, UUID equipmentId) {
-    org.springframework.data.jpa.domain.Specification<Exercise> spec = (root, query, cb) -> {
-      List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+    Specification<Exercise> spec = Specification.allOf(
+            ExerciseSpecification.hasNameLike(searchName),
+            ExerciseSpecification.hasCategory(category),
+            ExerciseSpecification.hasEquipment(equipmentId)
+    );
 
-      if (searchName != null && !searchName.isBlank()) {
-        predicates.add(cb.like(cb.lower(root.get("name")), "%" + searchName.toLowerCase() + "%"));
-      }
-      if (category != null) {
-        predicates.add(cb.equal(root.get("category"), category));
-      }
-      if (equipmentId != null) {
-        jakarta.persistence.criteria.Join<Exercise, ExerciseEquipment> equipmentJoin =
-                root.join("exerciseEquipments", jakarta.persistence.criteria.JoinType.INNER);
-        predicates.add(cb.equal(equipmentJoin.get("id"), equipmentId));
-      }
+    Sort sort = Sort.by(Sort.Direction.ASC, "name");
 
-      query.distinct(true);
-      return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+    Specification<Exercise> distinctSpec = (root, query, cb) -> {
+      if (query != null) query.distinct(true);
+      return spec.toPredicate(root, query, cb);
     };
 
-    org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "name");
-
-    List<Exercise> exercises = generalExercisesRepository.findAll(spec, sort);
+    List<Exercise> exercises = generalExercisesRepository.findAll(distinctSpec, sort);
     return generalExerciseMapper.toResponseList(exercises);
   }
 
@@ -193,7 +183,7 @@ public class GeneralExercisesService {
       return;
     }
 
-    request.stream()
+    request
         .forEach(equipment -> {
           if (equipment.id() != null) {
             var dbEquipment = exerciseEquipmentRepository.findById(equipment.id())
@@ -202,8 +192,7 @@ public class GeneralExercisesService {
                         + equipment.id() + " не найдено"));
             dbEquipment.getEquipmentProperties().clear();
             updateEquipmentsData(dbEquipment, equipment);
-            if (exercise.getExerciseEquipments().stream()
-                .filter(m -> m.getId() == dbEquipment.getId()).count() == 0) {
+            if (exercise.getExerciseEquipments().stream().noneMatch(m -> m.getId() == dbEquipment.getId())) {
               exercise.getExerciseEquipments().add(dbEquipment);
             }
 
@@ -221,13 +210,12 @@ public class GeneralExercisesService {
       return;
     }
 
-    exercisesMetricsRequests.stream().forEach(metric -> {
+    exercisesMetricsRequests.forEach(metric -> {
       if (metric.id() != null) {
         var dbMetric = exerciseMetricRepository.findById(metric.id())
             .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
         setMetricsData(dbMetric, metric);
-        if (exercise.getExercisesMetrics().stream()
-            .filter(m -> m.getId() == dbMetric.getId()).count() == 0) {
+        if (exercise.getExercisesMetrics().stream().noneMatch(m -> m.getId() == dbMetric.getId())) {
           exercise.getExercisesMetrics().add(dbMetric);
         }
         return;
@@ -239,7 +227,7 @@ public class GeneralExercisesService {
 
   private void removeExscessMetric(Exercise exercise, List<ExercisesMetricsRequest> request) {
     var newMetricId = request.stream()
-        .map(metric -> metric.id())
+        .map(ExercisesMetricsRequest::id)
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
 
@@ -248,12 +236,15 @@ public class GeneralExercisesService {
   }
 
   private void removeExscessEquipments(Exercise exercise, List<ExerciseEquipmentRequest> request) {
-    var newEquipmentId = request.stream()
-        .map(metric -> metric.id())
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
+      var newEquipmentId = new HashSet<>();
+      for (ExerciseEquipmentRequest exerciseEquipmentRequest : request) {
+          UUID id = exerciseEquipmentRequest.id();
+          if (id != null) {
+              newEquipmentId.add(id);
+          }
+      }
 
-    exercise.getExerciseEquipments()
+      exercise.getExerciseEquipments()
         .removeIf(metric -> !newEquipmentId.contains(metric.getId()));
 
   }
@@ -296,12 +287,11 @@ public class GeneralExercisesService {
     return metric;
   }
 
-  private ExerciseEquipment updateEquipmentsData(ExerciseEquipment equipment,
-      ExerciseEquipmentRequest request) {
+  private void updateEquipmentsData(ExerciseEquipment equipment,
+                                    ExerciseEquipmentRequest request) {
 
     var properties = prepareEquipmentData(equipment, request);
     equipment.getEquipmentProperties().addAll(properties);
-    return equipment;
   }
 
   private ExerciseEquipment setEquipmentsData(ExerciseEquipment equipment,
@@ -350,7 +340,7 @@ public class GeneralExercisesService {
       log.warn("Названия метрик дублируются");
       throw new DuplicateMetricsNameExeption();
     }
-    request.exercisesEquipments().stream().forEach((exercise) -> {
+    request.exercisesEquipments().forEach((exercise) -> {
       if (isHaveDuplicatePropertiesName(exercise.propertiesRequests())) {
         log.warn("Названия свойств упражнения дублируются");
         throw new DuplicatePropertiesNameException();
