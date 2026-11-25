@@ -19,6 +19,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @Entity
@@ -40,9 +42,11 @@ public class Exercise {
     private boolean isCommon = false;
 
     @Column(nullable = false)
+    @CreationTimestamp
     private Instant createdAt;
 
     @Column(nullable = false)
+    @UpdateTimestamp
     private Instant updatedAt;
 
     @Enumerated(EnumType.STRING)
