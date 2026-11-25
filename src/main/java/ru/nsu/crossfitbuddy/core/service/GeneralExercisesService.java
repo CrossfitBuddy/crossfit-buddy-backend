@@ -1,7 +1,13 @@
 package ru.nsu.crossfitbuddy.core.service;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Sort;
@@ -203,25 +209,25 @@ public class GeneralExercisesService {
         });
   }
 
-  private void updateExerciseMetrics(Exercise exercise,
-      List<ExercisesMetricsRequest> exercisesMetricsRequests) {
-
+  private void updateExerciseMetrics(Exercise exercise, List<ExercisesMetricsRequest> exercisesMetricsRequests) {
     if (exercisesMetricsRequests == null) {
       return;
     }
 
-    exercisesMetricsRequests.forEach(metric -> {
-      if (metric.id() != null) {
-        var dbMetric = exerciseMetricRepository.findById(metric.id())
-            .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
-        setMetricsData(dbMetric, metric);
-        if (exercise.getExercisesMetrics().stream().noneMatch(m -> m.getId() == dbMetric.getId())) {
+    exercisesMetricsRequests.forEach(request -> {
+      if (request.id() != null) {
+        var dbMetric = exerciseMetricRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
+
+        exercisesMetricsMapper.updateEntityFromRequest(request, dbMetric);
+
+        if (exercise.getExercisesMetrics().stream().noneMatch(m -> m.getId().equals(dbMetric.getId()))) {
           exercise.getExercisesMetrics().add(dbMetric);
         }
         return;
       }
-      var dbMetric = new ExercisesMetrics();
-      exercise.getExercisesMetrics().add(setMetricsData(dbMetric, metric));
+      var newMetric = exercisesMetricsMapper.toEntity(request);
+      exercise.getExercisesMetrics().add(newMetric);
     });
   }
 
@@ -254,13 +260,12 @@ public class GeneralExercisesService {
       return new java.util.HashSet<>();
     }
 
-    return requests.stream().map(metric -> {
-      if (metric.id() != null) {
-        return exerciseMetricRepository.findById(metric.id())
-            .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
+    return requests.stream().map(request -> {
+      if (request.id() != null) {
+        return exerciseMetricRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
       }
-      var dbMetric = new ExercisesMetrics();
-      return setMetricsData(dbMetric, metric);
+      return exercisesMetricsMapper.toEntity(request);
     }).collect(java.util.stream.Collectors.toSet());
   }
 
@@ -277,14 +282,6 @@ public class GeneralExercisesService {
       var dbEquipment = new ExerciseEquipment();
       return setEquipmentsData(dbEquipment, equipment);
     }).collect(java.util.stream.Collectors.toSet());
-  }
-
-  private ExercisesMetrics setMetricsData(ExercisesMetrics metric,
-      ExercisesMetricsRequest request) {
-    metric.setName(request.name());
-    metric.setMetricsValueType(request.metricsValueType());
-    metric.setUnit(request.unit());
-    return metric;
   }
 
   private void updateEquipmentsData(ExerciseEquipment equipment,
