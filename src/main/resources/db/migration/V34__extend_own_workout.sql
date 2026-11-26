@@ -13,6 +13,5 @@ with ordered as (
 )
 update complex set position = ordered.position from ordered where complex.id = ordered.id;
 alter table complex
-    alter column position set not null,
     add constraint ck_complex_position_positive check (position > 0),
     add constraint uq_complex_workout_position unique (workout_id, position);

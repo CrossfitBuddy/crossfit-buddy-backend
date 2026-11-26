@@ -27,7 +27,7 @@ public class WorkoutCreationMapper {
             .datetime(request.datetime()).durationSeconds(request.durationSeconds())
             .createdBy(owner).type(WorkoutType.OWN).status(WorkoutStatus.READY).build();
         for (var stage : request.stages()) {
-            var complex = new Complex();
+            var complex = Complex.builder().build();
             complex.setPosition(workout.getComplexes().size() + 1);
             complex.setWorkoutStage(stages.get(stage.workoutStageId()));
             complex.setComplexFormat(formats.get(stage.format()));
@@ -35,11 +35,11 @@ public class WorkoutCreationMapper {
             complex.setIntervalSeconds(stage.intervalSeconds());
             complex.setTargetRounds(stage.targetRounds());
             for (var roundRequest : stage.rounds()) {
-                var round = new ComplexRound();
+                var round = ComplexRound.builder().build();
                 round.setPosition(complex.getRounds().size() + 1);
                 round.setRepeatCount(roundRequest.repeatCount());
                 for (var requestExercise : roundRequest.exercises()) {
-                    var occurrence = new RoundExercise();
+                    var occurrence = RoundExercise.builder().build();
                     occurrence.setPosition(round.getExercises().size() + 1);
                     occurrence.setExercise(exercises.get(requestExercise.exerciseId()));
                     occurrence.setRepetitions(requestExercise.repetitions());

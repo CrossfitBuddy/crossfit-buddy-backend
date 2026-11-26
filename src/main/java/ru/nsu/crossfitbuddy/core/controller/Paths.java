@@ -45,5 +45,7 @@ public final class Paths {
     public static final String GENERAL_EXERCISES_GET_EQUIPMENTS = "/get/equipments";
     public static final String GENERAL_EXERCISES_GET_METRICS = "/get/metrics";
     public static final String GENERAL_EXERCISES_GET_EXERCISES = "/get/all-exercises";
+    public static final String GENERAL_EXERCISES_CATALOG = "/catalog";
+    public static final String GENERAL_EXERCISES_DETAILS = "/{id}";
 
 }

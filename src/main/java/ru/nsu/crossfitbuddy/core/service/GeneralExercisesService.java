@@ -2,6 +2,7 @@ package ru.nsu.crossfitbuddy.core.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -9,6 +10,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ import ru.nsu.crossfitbuddy.core.dto.response.exercises.ExercisesMetricsResponse
 import ru.nsu.crossfitbuddy.core.dto.response.exercises.GeneralExerciseResponse;
 import ru.nsu.crossfitbuddy.core.entity.CurrentUser;
 import ru.nsu.crossfitbuddy.core.entity.Exercise;
+import ru.nsu.crossfitbuddy.core.entity.ExerciseCategory;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipment;
 import ru.nsu.crossfitbuddy.core.entity.ExerciseEquipmentProperties;
 import ru.nsu.crossfitbuddy.core.entity.ExercisesMetrics;
@@ -37,6 +41,7 @@ import ru.nsu.crossfitbuddy.core.mapper.GeneralExerciseMapper;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseEquipmentRepository;
 import ru.nsu.crossfitbuddy.core.repository.ExerciseMetricRepository;
 import ru.nsu.crossfitbuddy.core.repository.GeneralExercisesRepository;
+import ru.nsu.crossfitbuddy.core.specification.ExerciseSpecification;
 
 @Service
 @RequiredArgsConstructor
@@ -102,6 +107,32 @@ public class GeneralExercisesService {
 
   }
 
+  @Transactional(readOnly = true)
+  public List<GeneralExerciseResponse> getExercisesCatalog(String searchName, ExerciseCategory category, UUID equipmentId) {
+    Specification<Exercise> spec = Specification.allOf(
+            ExerciseSpecification.hasNameLike(searchName),
+            ExerciseSpecification.hasCategory(category),
+            ExerciseSpecification.hasEquipment(equipmentId)
+    );
+
+    Sort sort = Sort.by(Sort.Direction.ASC, "name");
+
+    Specification<Exercise> distinctSpec = (root, query, cb) -> {
+      if (query != null) query.distinct(true);
+      return spec.toPredicate(root, query, cb);
+    };
+
+    List<Exercise> exercises = generalExercisesRepository.findAll(distinctSpec, sort);
+    return generalExerciseMapper.toResponseList(exercises);
+  }
+
+  @Transactional(readOnly = true)
+  public GeneralExerciseResponse getExerciseDetails(UUID id) {
+    Exercise exercise = generalExercisesRepository.findByIdWithDetails(id)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Упражнение с id " + id + " не найдено"));
+    return generalExerciseMapper.toResponse(exercise);
+  }
+
   private void updateExerciseData(GeneralExerciseRequest request) {
 
     var exercise = generalExercisesRepository.findById(request.id())
@@ -136,10 +167,10 @@ public class GeneralExercisesService {
     exercise.setUpdatedAt(Instant.now());
     exercise.setCreatedAt(Instant.now());
 
-    List<ExercisesMetrics> metrics = createExercisesMetrics(request.exercisesMetrics());
+    Set<ExercisesMetrics> metrics = createExercisesMetrics(request.exercisesMetrics());
     exercise.setExercisesMetrics(metrics);
 
-    List<ExerciseEquipment> equipments = createExerciseEquipments(request.exercisesEquipments());
+    Set<ExerciseEquipment> equipments = createExerciseEquipments(request.exercisesEquipments());
     exercise.setExerciseEquipments(equipments);
   }
 
@@ -158,7 +189,7 @@ public class GeneralExercisesService {
       return;
     }
 
-    request.stream()
+    request
         .forEach(equipment -> {
           if (equipment.id() != null) {
             var dbEquipment = exerciseEquipmentRepository.findById(equipment.id())
@@ -167,8 +198,7 @@ public class GeneralExercisesService {
                         + equipment.id() + " не найдено"));
             dbEquipment.getEquipmentProperties().clear();
             updateEquipmentsData(dbEquipment, equipment);
-            if (exercise.getExerciseEquipments().stream()
-                .filter(m -> m.getId() == dbEquipment.getId()).count() == 0) {
+            if (exercise.getExerciseEquipments().stream().noneMatch(m -> m.getId() == dbEquipment.getId())) {
               exercise.getExerciseEquipments().add(dbEquipment);
             }
 
@@ -179,32 +209,31 @@ public class GeneralExercisesService {
         });
   }
 
-  private void updateExerciseMetrics(Exercise exercise,
-      List<ExercisesMetricsRequest> exercisesMetricsRequests) {
-
+  private void updateExerciseMetrics(Exercise exercise, List<ExercisesMetricsRequest> exercisesMetricsRequests) {
     if (exercisesMetricsRequests == null) {
       return;
     }
 
-    exercisesMetricsRequests.stream().forEach(metric -> {
-      if (metric.id() != null) {
-        var dbMetric = exerciseMetricRepository.findById(metric.id())
-            .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
-        setMetricsData(dbMetric, metric);
-        if (exercise.getExercisesMetrics().stream()
-            .filter(m -> m.getId() == dbMetric.getId()).count() == 0) {
+    exercisesMetricsRequests.forEach(request -> {
+      if (request.id() != null) {
+        var dbMetric = exerciseMetricRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
+
+        exercisesMetricsMapper.updateEntityFromRequest(request, dbMetric);
+
+        if (exercise.getExercisesMetrics().stream().noneMatch(m -> m.getId().equals(dbMetric.getId()))) {
           exercise.getExercisesMetrics().add(dbMetric);
         }
         return;
       }
-      var dbMetric = new ExercisesMetrics();
-      exercise.getExercisesMetrics().add(setMetricsData(dbMetric, metric));
+      var newMetric = exercisesMetricsMapper.toEntity(request);
+      exercise.getExercisesMetrics().add(newMetric);
     });
   }
 
   private void removeExscessMetric(Exercise exercise, List<ExercisesMetricsRequest> request) {
     var newMetricId = request.stream()
-        .map(metric -> metric.id())
+        .map(ExercisesMetricsRequest::id)
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
 
@@ -213,66 +242,53 @@ public class GeneralExercisesService {
   }
 
   private void removeExscessEquipments(Exercise exercise, List<ExerciseEquipmentRequest> request) {
-    var newEquipmentId = request.stream()
-        .map(metric -> metric.id())
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
+      var newEquipmentId = new HashSet<>();
+      for (ExerciseEquipmentRequest exerciseEquipmentRequest : request) {
+          UUID id = exerciseEquipmentRequest.id();
+          if (id != null) {
+              newEquipmentId.add(id);
+          }
+      }
 
-    exercise.getExerciseEquipments()
+      exercise.getExerciseEquipments()
         .removeIf(metric -> !newEquipmentId.contains(metric.getId()));
 
   }
 
-  private List<ExercisesMetrics> createExercisesMetrics(List<ExercisesMetricsRequest> requests) {
+  private Set<ExercisesMetrics> createExercisesMetrics(List<ExercisesMetricsRequest> requests) {
     if (requests == null) {
-      return new ArrayList<>();
+      return new java.util.HashSet<>();
     }
 
-    return requests.stream().map(metric -> {
-      if (metric.id() != null) {
-        return exerciseMetricRepository.findById(metric.id())
-            .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
+    return requests.stream().map(request -> {
+      if (request.id() != null) {
+        return exerciseMetricRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Метрика не найдена"));
       }
-      var dbMetric = new ExercisesMetrics();
-      return setMetricsData(dbMetric, metric);
-    }).collect(Collectors.toCollection(ArrayList::new));
-
+      return exercisesMetricsMapper.toEntity(request);
+    }).collect(java.util.stream.Collectors.toSet());
   }
 
-  private List<ExerciseEquipment> createExerciseEquipments(
-      List<ExerciseEquipmentRequest> requests) {
-
+  private Set<ExerciseEquipment> createExerciseEquipments(List<ExerciseEquipmentRequest> requests) {
     if (requests == null) {
-      return new ArrayList<>();
+      return new java.util.HashSet<>();
     }
 
-    return requests.stream()
-        .map(equipment -> {
-          if (equipment.id() != null) {
-            return exerciseEquipmentRepository.findById(equipment.id())
-                .orElseThrow(
-                    () -> new EntityNotFoundException("Оборудование с id: "
-                        + equipment.id() + " не найдено"));
-          }
-          var dbEquipment = new ExerciseEquipment();
-          return setEquipmentsData(dbEquipment, equipment);
-        }).collect(Collectors.toCollection(ArrayList::new));
+    return requests.stream().map(equipment -> {
+      if (equipment.id() != null) {
+        return exerciseEquipmentRepository.findById(equipment.id())
+                .orElseThrow(() -> new EntityNotFoundException("Оборудование с id: " + equipment.id() + " не найдено"));
+      }
+      var dbEquipment = new ExerciseEquipment();
+      return setEquipmentsData(dbEquipment, equipment);
+    }).collect(java.util.stream.Collectors.toSet());
   }
 
-  private ExercisesMetrics setMetricsData(ExercisesMetrics metric,
-      ExercisesMetricsRequest request) {
-    metric.setName(request.name());
-    metric.setMetricsValueType(request.metricsValueType());
-    metric.setUnit(request.unit());
-    return metric;
-  }
-
-  private ExerciseEquipment updateEquipmentsData(ExerciseEquipment equipment,
-      ExerciseEquipmentRequest request) {
+  private void updateEquipmentsData(ExerciseEquipment equipment,
+                                    ExerciseEquipmentRequest request) {
 
     var properties = prepareEquipmentData(equipment, request);
     equipment.getEquipmentProperties().addAll(properties);
-    return equipment;
   }
 
   private ExerciseEquipment setEquipmentsData(ExerciseEquipment equipment,
@@ -321,7 +337,7 @@ public class GeneralExercisesService {
       log.warn("Названия метрик дублируются");
       throw new DuplicateMetricsNameExeption();
     }
-    request.exercisesEquipments().stream().forEach((exercise) -> {
+    request.exercisesEquipments().forEach((exercise) -> {
       if (isHaveDuplicatePropertiesName(exercise.propertiesRequests())) {
         log.warn("Названия свойств упражнения дублируются");
         throw new DuplicatePropertiesNameException();
