@@ -121,7 +121,7 @@ class ExerciseTests extends AbstractRepositoryTest {
             ExercisesMetrics::getName,
             ExercisesMetrics::getMetricsValueType,
             ExercisesMetrics::getUnit)
-        .containsExactlyElementsOf(
+        .containsExactlyInAnyOrderElementsOf(
             request.exercisesMetrics().stream()
                 .map(m -> tuple(m.name(), m.metricsValueType(), m.unit()))
                 .toList());
@@ -133,22 +133,24 @@ class ExerciseTests extends AbstractRepositoryTest {
             equipment -> equipment.getImage() == null
                 ? null
                 : equipment.getImage().getId())
-        .containsExactlyElementsOf(
+        .containsExactlyInAnyOrderElementsOf(
             request.exercisesEquipments().stream()
                 .map(e -> tuple(e.name(), e.imageFileId()))
                 .toList());
 
     // Свойства оборудования: name, metricsValueType, unit
-    for (int i = 0; i < request.exercisesEquipments().size(); i++) {
-      var expectedEquipment = request.exercisesEquipments().get(i);
-      var savedEquipment = saved.getExerciseEquipments().get(i);
+    for (var expectedEquipment : request.exercisesEquipments()) {
+      var savedEquipment = saved.getExerciseEquipments().stream()
+              .filter(eq -> eq.getName().equals(expectedEquipment.name()))
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("Equipment not found: " + expectedEquipment.name()));
 
       assertThat(savedEquipment.getEquipmentProperties())
           .extracting(
               ExerciseEquipmentProperties::getName,
               ExerciseEquipmentProperties::getMetricsValueType,
               ExerciseEquipmentProperties::getUnit)
-          .containsExactlyElementsOf(
+          .containsExactlyInAnyOrderElementsOf(
               expectedEquipment.propertiesRequests().stream()
                   .map(p -> tuple(p.name(), p.metricsValueType(), p.unit()))
                   .toList());
@@ -167,10 +169,10 @@ class ExerciseTests extends AbstractRepositoryTest {
         .id(exercise.getId())
         .clearExercisesEquipments()
         .exercisesEquipment(
-            defaultBarbell().id(exercise.getExerciseEquipments().getFirst().getId()).build())
+            defaultBarbell().id(exercise.getExerciseEquipments().iterator().next().getId()).build())
         .clearExercisesMetrics()
         .exercisesMetric(
-            repsMetric().id(exercise.getExercisesMetrics().getFirst().getId()).build())
+            repsMetric().id(exercise.getExercisesMetrics().iterator().next().getId()).build())
         .build();
 
     generalExercisesService.updateExercises(updateRequest);
@@ -251,7 +253,7 @@ class ExerciseTests extends AbstractRepositoryTest {
         .imageFileId(newFile.getId())
         .videoFileId(newFile.getId())
         .clearExercisesEquipments()
-        .exercisesEquipment(defaultBarbell().id(exercise.getExerciseEquipments().getFirst().getId())
+        .exercisesEquipment(defaultBarbell().id(exercise.getExerciseEquipments().iterator().next().getId())
             .imageFileId(newFile.getId()).build())
         .build();
 
@@ -270,7 +272,7 @@ class ExerciseTests extends AbstractRepositoryTest {
   void Should_AddExistEquipment_WhenAddcreateNewExercise() {
     var account = createTestAccount();
     var exercise = saveBaseExercise(account);
-    var equipment = exercise.getExerciseEquipments().getFirst();
+    var equipment = exercise.getExerciseEquipments().iterator().next();
 
     var request = generalExercise()
         .clearExercisesEquipments()
@@ -283,7 +285,7 @@ class ExerciseTests extends AbstractRepositoryTest {
     var saved = generalExercisesRepository.findById(newExercise.getId()).get();
 
     assertEquals(request.exercisesEquipments().getFirst().id(),
-        saved.getExerciseEquipments().getFirst().getId());
+        saved.getExerciseEquipments().iterator().next().getId());
   }
 
   @Test
@@ -291,7 +293,7 @@ class ExerciseTests extends AbstractRepositoryTest {
   void Should_AddExistMetric_WhenAddcreateNewExercise() {
     var account = createTestAccount();
     var exercise = saveBaseExercise(account);
-    var metric = exercise.getExercisesMetrics().getFirst();
+    var metric = exercise.getExercisesMetrics().iterator().next();
 
     var request = generalExercise()
         .clearExercisesMetrics()
@@ -304,7 +306,7 @@ class ExerciseTests extends AbstractRepositoryTest {
     var saved = generalExercisesRepository.findById(newExercise.getId()).get();
 
     assertEquals(request.exercisesMetrics().getFirst().id(),
-        saved.getExercisesMetrics().getFirst().getId());
+        saved.getExercisesMetrics().iterator().next().getId());
   }
 
   private Exercise saveBaseExercise(UserAccount account) {

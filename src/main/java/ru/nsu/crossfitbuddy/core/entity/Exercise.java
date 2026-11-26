@@ -1,7 +1,7 @@
 package ru.nsu.crossfitbuddy.core.entity;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.CascadeType;
@@ -19,6 +19,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @Entity
@@ -40,9 +42,11 @@ public class Exercise {
     private boolean isCommon = false;
 
     @Column(nullable = false)
+    @CreationTimestamp
     private Instant createdAt;
 
     @Column(nullable = false)
+    @UpdateTimestamp
     private Instant updatedAt;
 
     @Enumerated(EnumType.STRING)
@@ -59,11 +63,11 @@ public class Exercise {
 
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(name = "exercises_equipments", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_equipment_id"))
-    private List<ExerciseEquipment> exerciseEquipments;
+    private Set<ExerciseEquipment> exerciseEquipments;
 
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(name = "exercises_metrics", joinColumns = @JoinColumn(name = "general_exercise_id"), inverseJoinColumns = @JoinColumn(name = "exercise_metric_id"))
-    private List<ExercisesMetrics> exercisesMetrics;
+    private Set<ExercisesMetrics> exercisesMetrics;
 
     @ManyToOne
     @JoinColumn(name = "created_by")

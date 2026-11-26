@@ -1,0 +1,1 @@
+ALTER TABLE exercise_metric ADD COLUMN metric_code VARCHAR(50);

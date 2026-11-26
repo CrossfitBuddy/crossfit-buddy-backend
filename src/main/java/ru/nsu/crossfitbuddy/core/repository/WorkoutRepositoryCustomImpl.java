@@ -30,6 +30,24 @@ public class WorkoutRepositoryCustomImpl implements WorkoutRepositoryCustom {
         return new PageImpl<>(items, pageable, total);
     }
 
+    @Override
+    public Optional<Workout> findAccessibleById(UUID id, UUID userId, UserRole activeRole) {
+        var cb = entityManager.getCriteriaBuilder();
+        var query = cb.createQuery(Workout.class);
+        var root = query.from(Workout.class);
+
+        query.select(root)
+            .where(
+                cb.equal(root.get("id"), id),
+                buildAccessPredicate(cb, query, root, userId, activeRole, Set.of())
+            );
+
+        return entityManager.createQuery(query)
+            .setMaxResults(1)
+            .getResultStream()
+            .findFirst();
+    }
+
     private List<Workout> findWorkouts(
         UUID userId,
         UserRole role,
@@ -75,7 +93,7 @@ public class WorkoutRepositoryCustomImpl implements WorkoutRepositoryCustom {
         WorkoutFilter filter
     ) {
         return cb.and(
-            buildAccessPredicate(cb, query, root, userId, role, filter),
+            buildAccessPredicate(cb, query, root, userId, role, filter.sources()),
             buildFilterPredicate(cb, root, filter)
         );
     }
@@ -86,10 +104,8 @@ public class WorkoutRepositoryCustomImpl implements WorkoutRepositoryCustom {
         Root<Workout> root,
         UUID userId,
         UserRole role,
-        WorkoutFilter filter
+        Set<WorkoutType> sources
     ) {
-        var sources = filter.sources();
-
         Predicate own = cb.equal(root.get("createdBy"), userId);
 
         List<Predicate> predicates = new ArrayList<>();
