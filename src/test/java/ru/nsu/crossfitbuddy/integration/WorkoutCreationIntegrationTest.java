@@ -1,7 +1,7 @@
 package ru.nsu.crossfitbuddy.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,12 +39,49 @@ class WorkoutCreationIntegrationTest extends AbstractWorkoutCreationIntegrationT
         assertCommittedResponse(body);
         assertThat(result.getResponse().getHeader(HttpHeaders.LOCATION))
             .endsWith(ENDPOINT + "/" + body.required("id").asText());
+        String id = body.required("id").asText();
+        String item = "items[?(@.id == '" + id + "')]";
         mvc.perform(get(ENDPOINT).contextPath("/api")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("items[*].id", hasItem(body.required("id").asText())));
+            .andExpect(jsonPath(item + ".source", contains("OWN")))
+            .andExpect(jsonPath(item + ".status", contains("READY")));
         assertThat(database.queryForObject("select count(*) from workout_participant where workout_id = ?",
             Integer.class, UUID.fromString(body.required("id").asText()))).isZero();
+    }
+
+    @Test
+    @DisplayName("Из каталога в карточку")
+    void createsWorkoutWithCatalogExerciseAndReadsCard() throws Exception {
+        database.update("update exercise set is_common = true where id = ?", exercise);
+        var catalog = mvc.perform(get("/api/v1/general-exercises/catalog").contextPath("/api")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .param("name", "Own squat"))
+            .andExpect(status().isOk()).andReturn();
+        var items = json.readTree(catalog.getResponse().getContentAsString());
+        String catalogId = null;
+        for (var item : items) {
+            if (exercise.toString().equals(item.path("id").asText())) {
+                catalogId = item.required("id").asText();
+                break;
+            }
+        }
+        assertThat(catalogId).isNotNull();
+
+        var request = request(ComplexFormatType.EMOM).put("name", "Карточка");
+        ((ObjectNode) request.at("/stages/0/rounds/0/exercises/0")).put("exerciseId", catalogId);
+        var result = create(request, token).andExpect(status().isCreated()).andReturn();
+        var id = json.readTree(result.getResponse().getContentAsString()).required("id").asText();
+        mvc.perform(get(ENDPOINT + "/" + id).contextPath("/api")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("id").value(id))
+            .andExpect(jsonPath("title").value("Карточка"))
+            .andExpect(jsonPath("durationSec").value(1200))
+            .andExpect(jsonPath("complexes[0].complexFormat").value("EMOM"))
+            .andExpect(jsonPath("complexes[0].intervalSeconds").value(60))
+            .andExpect(jsonPath("complexes[0].rounds[0].repeatCount").value(1))
+            .andExpect(jsonPath("complexes[0].rounds[0].exercises[0].id").value(catalogId));
     }
 
     @Test

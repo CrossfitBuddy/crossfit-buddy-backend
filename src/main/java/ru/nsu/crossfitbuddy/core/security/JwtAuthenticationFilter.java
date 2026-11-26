@@ -70,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain chain) throws ServletException, IOException {
         var headers = Collections.list(request.getHeaders(HttpHeaders.AUTHORIZATION));
         if (headers.isEmpty()) {
-            log.debug("Authorization header is null or doesn't implement Bearer format");
+            log.debug("Authorization header is null or doesn't implement Bearer workoutStage");
 
             chain.doFilter(request, response);
             return;
