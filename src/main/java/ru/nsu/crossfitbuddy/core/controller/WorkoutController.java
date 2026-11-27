@@ -53,17 +53,19 @@ public class WorkoutController {
     private final WorkoutCreationService creation;
 
     @PostMapping
+    @Operation(summary = "Создать тренировку",
+        description = "Атлет создаёт свою тренировку с этапами, раундами и упражнениями.")
     @ActiveRoleIn(UserRole.ATHLETE)
     @ApiResponses({
-        @ApiResponse(responseCode = "201",
+        @ApiResponse(responseCode = "201", description = "Тренировка создана",
             content = @Content(schema = @Schema(implementation = WorkoutResponse.class))),
-        @ApiResponse(responseCode = "400",
+        @ApiResponse(responseCode = "400", description = "Некорректные данные тренировки",
             content = @Content(schema = @Schema(implementation = WorkoutErrorResponse.class))),
-        @ApiResponse(responseCode = "401",
+        @ApiResponse(responseCode = "401", description = "Требуется авторизация",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "403",
+        @ApiResponse(responseCode = "403", description = "Создание доступно только с ролью атлета",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "415",
+        @ApiResponse(responseCode = "415", description = "Запрос должен быть в формате JSON",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<WorkoutResponse> create(
