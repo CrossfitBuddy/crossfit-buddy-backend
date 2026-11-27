@@ -4,6 +4,8 @@ import org.springframework.stereotype.Component;
 import ru.nsu.crossfitbuddy.core.dto.workout.OwnWorkoutRequest;
 import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutExerciseRequest;
 import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutResponse;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutRoundRequest;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutStageRequest;
 import ru.nsu.crossfitbuddy.core.entity.Complex;
 import ru.nsu.crossfitbuddy.core.entity.ComplexFormat;
 import ru.nsu.crossfitbuddy.core.entity.ComplexFormatType;
@@ -27,34 +29,54 @@ public class WorkoutCreationMapper {
             .datetime(request.datetime()).durationSeconds(request.durationSeconds())
             .createdBy(owner).type(WorkoutType.OWN).status(WorkoutStatus.READY).build();
         for (var stage : request.stages()) {
-            var complex = Complex.builder().build();
-            complex.setPosition(workout.getComplexes().size() + 1);
-            complex.setWorkoutStage(stages.get(stage.workoutStageId()));
-            complex.setComplexFormat(formats.get(stage.format()));
-            complex.setTimeLimitSeconds(stage.timeLimitSeconds());
-            complex.setIntervalSeconds(stage.intervalSeconds());
-            complex.setTargetRounds(stage.targetRounds());
-            for (var roundRequest : stage.rounds()) {
-                var round = ComplexRound.builder().build();
-                round.setPosition(complex.getRounds().size() + 1);
-                round.setRepeatCount(roundRequest.repeatCount());
-                for (var requestExercise : roundRequest.exercises()) {
-                    var occurrence = RoundExercise.builder().build();
-                    occurrence.setPosition(round.getExercises().size() + 1);
-                    occurrence.setExercise(exercises.get(requestExercise.exerciseId()));
-                    occurrence.setRepetitions(requestExercise.repetitions());
-                    occurrence.setWeightKg(requestExercise.weightKg());
-                    occurrence.setDurationSeconds(requestExercise.durationSeconds());
-                    occurrence.setDistanceMeters(requestExercise.distanceMeters());
-                    occurrence.setHeightCm(requestExercise.heightCm());
-                    occurrence.setNotes(requestExercise.notes());
-                    round.addExercise(occurrence);
-                }
-                complex.addRound(round);
-            }
+            var complex = toComplex(stage, workout.getComplexes().size() + 1,
+                stages.get(stage.workoutStageId()), formats.get(stage.format()), exercises);
             workout.addComplex(complex);
         }
         return workout;
+    }
+
+    private Complex toComplex(WorkoutStageRequest request, int position, WorkoutStage stage,
+        ComplexFormat format, Map<UUID, Exercise> exercises) {
+        var complex = Complex.builder()
+            .position(position)
+            .workoutStage(stage)
+            .complexFormat(format)
+            .timeLimitSeconds(request.timeLimitSeconds())
+            .intervalSeconds(request.intervalSeconds())
+            .targetRounds(request.targetRounds())
+            .build();
+
+        for (var round : request.rounds()) {
+            complex.addRound(toRound(round, complex.getRounds().size() + 1, exercises));
+        }
+        return complex;
+    }
+
+    private ComplexRound toRound(WorkoutRoundRequest request, int position, Map<UUID, Exercise> exercises) {
+        var round = ComplexRound.builder()
+            .position(position)
+            .repeatCount(request.repeatCount())
+            .build();
+
+        for (var exercise : request.exercises()) {
+            round.addExercise(toExercise(exercise, round.getExercises().size() + 1,
+                exercises.get(exercise.exerciseId())));
+        }
+        return round;
+    }
+
+    private RoundExercise toExercise(WorkoutExerciseRequest request, int position, Exercise exercise) {
+        return RoundExercise.builder()
+            .position(position)
+            .exercise(exercise)
+            .repetitions(request.repetitions())
+            .weightKg(request.weightKg())
+            .durationSeconds(request.durationSeconds())
+            .distanceMeters(request.distanceMeters())
+            .heightCm(request.heightCm())
+            .notes(request.notes())
+            .build();
     }
 
     public WorkoutResponse toResponse(Workout workout) {
