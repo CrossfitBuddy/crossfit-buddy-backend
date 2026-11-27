@@ -16,12 +16,12 @@ public class SMTPMailService implements MailService {
 
     private final JavaMailSender mailSender;
 
-    private final String fromAddres;
+    private final String appUsername;
 
     public SMTPMailService(JavaMailSender mailSender,
-            @Value("${server.fromAddress}") String fromAddres) {
+            @Value("${spring.mail.username}") String appUsername) {
         this.mailSender = mailSender;
-        this.fromAddres = fromAddres;
+        this.appUsername = appUsername;
     }
 
     @Override
@@ -32,10 +32,10 @@ public class SMTPMailService implements MailService {
 
         messageHelper.setTo(mailTemplates.getToAddress());
         messageHelper.setSubject(mailTemplates.getSubject());
-        messageHelper.setFrom(fromAddres);
+        messageHelper.setFrom(appUsername);
         messageHelper.setText(mailTemplates.getBody(), true);
 
-        log.debug("Try to send email from: " + fromAddres + " to: " + mailTemplates.getToAddress());
+        log.info("Try to send email from: " + appUsername + " to: " + mailTemplates.getToAddress());
 
         mailSender.send(message);
 
