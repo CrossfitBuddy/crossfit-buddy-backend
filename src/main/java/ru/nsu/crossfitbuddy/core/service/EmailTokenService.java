@@ -10,6 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import ru.nsu.crossfitbuddy.core.mail.service.MailService;
 import ru.nsu.crossfitbuddy.core.repository.EmailTokenRepository;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailTokenService {
@@ -44,6 +46,8 @@ public class EmailTokenService {
     @Transactional
     public void sendConfirmationEmail(UserAccount userAccount) {
         if (userAccount.isEnabled()) {
+            log.warn("User account is already enabled");
+
             throw createApiException(HttpStatus.BAD_REQUEST);
         }
 
@@ -68,6 +72,7 @@ public class EmailTokenService {
             mailService.sendHtml(mailCreator.getEmailConfirmMessage(expiresAtLocalTime,
                     confirmationLink, userAccount.getEmail()));
         } catch (MessagingException e) {
+            log.warn("Couldn't send email", e);
             throw createApiException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -114,6 +119,7 @@ public class EmailTokenService {
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException e) {
+            log.warn("Couldn't create token hash", e);
             throw createApiException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
