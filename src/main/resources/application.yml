@@ -27,7 +27,9 @@ spring:
       strict-duplicate-detection: true
   mail:
     host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
+    username: ${EMAIL_USERNAME:test@example.com}
+    password: ${EMAIL_PASSWORD}
+    port: ${SMTP_PORT:465}
     templates:
       emailConfirm: mail/emailConfirm
       passwordRecovery: mail/passwordRecovery
@@ -35,12 +37,13 @@ spring:
     properties:
       mail:
         smtp:
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-          auth: false
+          auth: true
+          ssl:
+            enable: true
           starttls:
             enable: false
+            required: false
+
   s3File:
     pendingTime: ${PENDING_TIME:10m}
     getTime: ${GET_TIME:10m}
