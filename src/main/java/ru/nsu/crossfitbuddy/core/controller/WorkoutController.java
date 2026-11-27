@@ -1,5 +1,14 @@
 package ru.nsu.crossfitbuddy.core.controller;
 
+import ru.nsu.crossfitbuddy.core.service.WorkoutCreationService;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutResponse;
+import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutErrorResponse;
+import ru.nsu.crossfitbuddy.core.dto.workout.OwnWorkoutRequest;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping;
+import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,6 +49,33 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WorkoutController {
     private final WorkoutService workouts;
+
+    private final WorkoutCreationService creation;
+
+    @PostMapping
+    @Operation(summary = "Создать тренировку",
+        description = "Атлет создаёт свою тренировку с этапами, раундами и упражнениями.")
+    @ActiveRoleIn(UserRole.ATHLETE)
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Тренировка создана",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Некорректные данные тренировки",
+            content = @Content(schema = @Schema(implementation = WorkoutErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Требуется авторизация",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Создание доступно только с ролью атлета",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "415", description = "Запрос должен быть в формате JSON",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<WorkoutResponse> create(
+        @Parameter(hidden = true) @AuthenticationPrincipal CurrentUser currentUser,
+        @Valid @RequestBody OwnWorkoutRequest request) {
+        var workout = creation.createOwn(currentUser, request);
+        var location = ServletUriComponentsBuilder.fromCurrentRequestUri()
+            .path("/{id}").buildAndExpand(workout.id()).toUri();
+        return ResponseEntity.created(location).body(workout);
+    }
 
     @GetMapping
     @Operation(summary = "Получить доступные тренировки",

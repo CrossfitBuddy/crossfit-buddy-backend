@@ -26,6 +26,8 @@ public class Complex {
     @JoinColumn(name = "workout_id", nullable = false)
     private Workout workout;
 
+    private Integer position;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "workout_stage_id", nullable = false)
     private WorkoutStage workoutStage;
@@ -51,6 +53,12 @@ public class Complex {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Builder.Default
     @OneToMany(mappedBy = "complex", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComplexRound> rounds = new ArrayList<>();
+
+    public void addRound(ComplexRound round) {
+        rounds.add(round);
+        round.setComplex(this);
+    }
 }

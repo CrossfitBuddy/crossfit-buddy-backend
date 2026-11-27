@@ -46,6 +46,12 @@ public class ComplexRound {
     @Column(name = "repeat_count", nullable = false)
     private Integer repeatCount;
 
+    @Builder.Default
     @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoundExercise> exercises = new ArrayList<>();
+
+    public void addExercise(RoundExercise exercise) {
+        exercises.add(exercise);
+        exercise.setRound(this);
+    }
 }

@@ -22,6 +22,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -74,15 +75,31 @@ public class Workout {
     private Instant updatedAt;
 
     // для детальной карточки
+    @Column(name = "scheduled_at")
+    private OffsetDateTime datetime;
+
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
+    private String coach;
+
+    @Builder.Default
     @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     private List<Complex> complexes = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     private List<WorkoutMaterial> materials = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     private List<WorkoutParticipant> participants = new ArrayList<>();
+
+    public void addComplex(Complex complex) {
+        complexes.add(complex);
+        complex.setWorkout(this);
+    }
 }
