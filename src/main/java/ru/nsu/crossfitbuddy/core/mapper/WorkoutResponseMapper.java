@@ -11,7 +11,6 @@ import ru.nsu.crossfitbuddy.core.entity.Workout;
 import ru.nsu.crossfitbuddy.core.entity.WorkoutType;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -43,7 +42,8 @@ public class WorkoutResponseMapper {
 
     public WorkoutDetailsResponse toDetails(Workout w) {
         var complexes = w.getComplexes().stream()
-                .sorted(Comparator.comparingInt(c -> c.getWorkoutStage().getPosition()))
+                .sorted(Comparator.comparing(Complex::getPosition, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparingInt(c -> c.getWorkoutStage().getPosition()))
                 .map(complexMapper::toResponse)
                 .toList();
 
@@ -53,12 +53,16 @@ public class WorkoutResponseMapper {
 
         return new WorkoutDetailsResponse(
                 w.getId(), w.getTitle(), w.getDescription(),
-                w.getType(), w.getStatus(), totalDuration(w.getComplexes()),
+                w.getType(), w.getStatus(), duration(w),
                 complexes, materials
         );
     }
 
-    private Integer totalDuration(List<Complex> complexes) {
+    private Integer duration(Workout workout) {
+        if (workout.getDurationSeconds() != null) {
+            return workout.getDurationSeconds();
+        }
+        var complexes = workout.getComplexes();
         if (complexes.isEmpty()) {
             return null;
         }

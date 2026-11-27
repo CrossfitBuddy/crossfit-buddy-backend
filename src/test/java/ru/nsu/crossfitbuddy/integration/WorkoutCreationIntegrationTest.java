@@ -87,7 +87,7 @@ class WorkoutCreationIntegrationTest extends AbstractWorkoutCreationIntegrationT
     @Test
     @DisplayName("Порядок и отдельные вхождения")
     void preservesOrderMetricsAndRepeatedExercises() throws Exception {
-        var request = request(ComplexFormatType.FOR_TIME);
+        var request = request(ComplexFormatType.FOR_TIME).put("durationSeconds", 600);
         var first = (ObjectNode) request.at("/stages/0");
         first.put("workoutStageId", 1002).put("targetRounds", 5);
         var round = (ObjectNode) first.at("/rounds/0");
@@ -118,6 +118,12 @@ class WorkoutCreationIntegrationTest extends AbstractWorkoutCreationIntegrationT
             join round_exercise e on e.round_id = r.id
             where c.workout_id = ? order by c.position, r.position, e.position
             """, UUID.fromString(body.required("id").asText()));
+        mvc.perform(get(ENDPOINT + "/" + body.required("id").asText()).contextPath("/api")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("durationSec").value(600))
+            .andExpect(jsonPath("complexes[0].complexFormat").value("FOR_TIME"))
+            .andExpect(jsonPath("complexes[1].complexFormat").value("EMOM"));
         assertThat(rows).hasSize(8);
         assertThat(rows.stream().map(row -> row.get("id")).distinct()).hasSize(8);
         assertThat(rows.stream().map(row -> row.get("exercise_id"))).containsOnly(exercise);
