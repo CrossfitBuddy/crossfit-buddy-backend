@@ -21,13 +21,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.testcontainers.containers.PostgreSQLContainer;
 import ru.nsu.crossfitbuddy.core.controller.Paths;
 import ru.nsu.crossfitbuddy.core.dto.workout.WorkoutResponse;
 import ru.nsu.crossfitbuddy.core.entity.ComplexFormatType;
 import ru.nsu.crossfitbuddy.core.entity.UserRole;
-import ru.nsu.crossfitbuddy.core.repository.AbstractRepositoryTest;
 import ru.nsu.crossfitbuddy.core.repository.UserAccountRepository;
 import ru.nsu.crossfitbuddy.core.service.JwtService;
 
@@ -43,7 +45,20 @@ import java.util.UUID;
 @Isolated
 @Execution(ExecutionMode.SAME_THREAD)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-abstract class AbstractWorkoutCreationIntegrationTest extends AbstractRepositoryTest {
+abstract class AbstractWorkoutCreationIntegrationTest {
+    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17");
+
+    static {
+        POSTGRES.start();
+    }
+
+    @DynamicPropertySource
+    static void databaseProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
+
     protected static final String ENDPOINT = "/api" + Paths.WORKOUTS;
 
     @Autowired MockMvc mvc;
